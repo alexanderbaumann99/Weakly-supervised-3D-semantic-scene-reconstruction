@@ -12,9 +12,9 @@ class ConditionalDecoder(nn.Module):
         self.fc2=nn.Linear(hidden_dim,hidden_dim)
 
         self.CBatchNorm1=CBatchNorm1d(c_dim,
-                                      f_dim=128)
+                                      f_dim=hidden_dim)
         self.CBatchNorm2=CBatchNorm1d(c_dim,
-                                      f_dim=128)
+                                      f_dim=hidden_dim)
         self.act=nn.LeakyReLU()
 
     def forward(self,x,condition):
@@ -30,20 +30,18 @@ class ShapePrior(nn.Module):
     """
     Definition of Shape Prior from DOPS paper
     Parameters:
-        query_batch_size: batch size of query points
         c_dim           : dimension of conditional latent vector
-        input_dim       : input dimension of point cloud from ShapeNet
     """
 
-    def __init__(self,cfg,query_batch_size,input_dim):
+    def __init__(self,cfg):
         super(ShapePrior,self).__init__()
 
 
         self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim'],
-                                      dim=input_dim,
-                                      hidden_dim=cfg.config['data']['hidden_dim'])
+                                      dim=3,
+                                      hidden_dim=128)
 
-        self.fc1=nn.Linear(query_batch_size,128)
+        self.fc1=nn.Linear(3,128)
         self.cdecoder1=ConditionalDecoder(c_dim=cfg.config['data']['c_dim'],
                                           hidden_dim=128)
         self.cdecoder2=ConditionalDecoder(c_dim=cfg.config['data']['c_dim'],
