@@ -19,11 +19,9 @@ class DecoderBlock(nn.Module):
 
     def forward(self,x,condition):
 
-        out=self.CBatchNorm1(x,condition)
-        out=self.act(self.fc1(out))
-        out=self.CBatchNorm2(out,condition)
-        out=self.act(self.fc2(out))
-
+        out=self.fc1(self.act(self.CBatchNorm1(x,condition)))
+        out=self.fc2(self.act(self.CBatchNorm2(out,condition)))
+        
         return out
 
 class ShapePrior(nn.Module):
@@ -55,20 +53,34 @@ class ShapePrior(nn.Module):
         self.CBatchNorm=CBatchNorm1d(c_dim=cfg.config['data']['c_dim'],
                                      f_dim=128)
         self.fc2=nn.Linear(128,1)
+        self.act=nn.LeakyReLU()
 
     
     def generate_latent(self,pc):
+        '''
+        Generates shape embedding of the point cloud
+        Args: 
+            pc: point cloud of the form (N x Number of points x 3) 
+        Returns:
+            self.latent:    shape embedding of size (N x c_dim)     
+        '''
         self.latent=self.encoder(pc)
 
     def forward(self,query_points):
-
-        out=F.leaky_relu(self.fc1(query_points))
+        '''
+        Returns the signed distance of each query point to the surface
+        Args: 
+            query_points: query points of the form (batch_size_pc x batch_size_queries x 3) 
+        Returns:
+            out:    signed distance of the form  (batch_size_pc x batch_size_queries x 1)    
+        '''
+        out=self.fc1(query_points)
         out=self.dblock1(out,self.latent)
         out=self.dblock2(out,self.latent)
         out=self.dblock3(out,self.latent)
         out=self.dblock4(out,self.latent)
         out=self.dblock5(out,self.latent)
-        out=self.CBatchNorm(out,self.latent)
-        out=F.tanh(self.fc2(out))
+        out=self.act(self.CBatchNorm(out,self.latent))
+        out=torch.tanh(self.fc2(out))
 
         return out
