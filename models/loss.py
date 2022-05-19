@@ -4,6 +4,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from external.pyTorchChamferDistance.chamfer_distance import ChamferDistance
 from models.registers import LOSSES
@@ -411,3 +412,9 @@ class BoxNetDetectionLoss(BaseLoss):
                 'size_cls_loss': size_cls_loss.item(),
                 'size_reg_loss': size_reg_loss.item(),
                 'obj_acc': obj_acc.item()}
+
+@LOSSES.register_module
+class ShapePriorLoss(BaseLoss):
+    def __call__(self, pred, gt):
+        total_loss=F.mse_loss(pred,torch.sign(gt))
+        return {'total_loss': total_loss}
