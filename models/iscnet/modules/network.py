@@ -28,7 +28,7 @@ class ISCNet(BaseNetwork):
         if cfg.config[cfg.config['mode']]['phase'] in ['detection']:
             phase_names += ['backbone', 'voting', 'detection']
         if cfg.config[cfg.config['mode']]['phase'] in ['completion']:
-            phase_names += ['backbone', 'voting', 'detection', 'completion']
+            phase_names += ['backbone', 'voting', 'detection', 'completion','shape_prior']
             if cfg.config['data']['skip_propagate']:
                 phase_names += ['skip_propagation']
 

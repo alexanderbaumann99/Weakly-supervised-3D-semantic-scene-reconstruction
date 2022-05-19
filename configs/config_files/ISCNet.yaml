@@ -22,7 +22,7 @@ data:
   points_unpackbits: True
   points_subsample: [1024, 1024]
   hidden_dim: 512
-  c_dim: 512
+  c_dim: 128
   z_dim: 32
   threshold: 0.5
   completion_limit_in_train: 10
@@ -45,6 +45,9 @@ model:
     method: ONet
     loss: ONet_Loss
     weight: 0.005
+  shape_prior:
+    method: ShapePrior
+    loss: ShapePriorLoss
 optimizer:
   method: Adam
   lr: 5e-5

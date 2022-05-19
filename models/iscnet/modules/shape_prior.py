@@ -2,6 +2,8 @@ from models.iscnet.modules.layers import ResnetPointnet,CBatchNorm1d
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from models.registers import MODULES
+
 
 class DecoderBlock(nn.Module):
 
@@ -26,6 +28,7 @@ class DecoderBlock(nn.Module):
         
         return out
 
+@MODULES.register_module
 class ShapePrior(nn.Module):
     """
     Definition of Shape Prior from DOPS paper
@@ -33,14 +36,19 @@ class ShapePrior(nn.Module):
         c_dim           : dimension of conditional latent vector
     """
 
-    def __init__(self,cfg,hidden_dim=128,leaky=False):
+    def __init__(self, cfg, optim_spec=None):
         super(ShapePrior,self).__init__()
 
-
+        '''Optimizer parameters used in training'''
+        self.optim_spec = optim_spec
+        self.cfg = cfg
+        '''Definition of the modules'''
+        leaky=False
         self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim'],
                                       dim=3,
-                                      hidden_dim=128)
+                                      hidden_dim=cfg.config['data']['hidden_dim'])
 
+        hidden_dim=cfg.config['data']['c_dim']
         self.fc1=nn.Conv1d(3,hidden_dim,1)
         self.dblock1=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                   hidden_dim=hidden_dim,
