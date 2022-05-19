@@ -5,17 +5,19 @@ import torch.nn.functional as F
 
 class DecoderBlock(nn.Module):
 
-    def __init__(self,c_dim,hidden_dim=128):
+    def __init__(self,c_dim,hidden_dim=128,leaky=False):
         super(DecoderBlock,self).__init__()
 
-        self.fc1=nn.Linear(hidden_dim,hidden_dim)
-        self.fc2=nn.Linear(hidden_dim,hidden_dim)
+        self.fc1=nn.Conv1d(hidden_dim,hidden_dim,1)
+        self.fc2=nn.Conv1d(hidden_dim,hidden_dim,1)
 
         self.CBatchNorm1=CBatchNorm1d(c_dim,
                                       f_dim=hidden_dim)
         self.CBatchNorm2=CBatchNorm1d(c_dim,
                                       f_dim=hidden_dim)
-        self.act=nn.LeakyReLU()
+        self.act=nn.ReLU()
+        if leaky:
+            self.act=nn.LeakyReLU()
 
     def forward(self,x,condition):
 
@@ -31,7 +33,7 @@ class ShapePrior(nn.Module):
         c_dim           : dimension of conditional latent vector
     """
 
-    def __init__(self,cfg):
+    def __init__(self,cfg,hidden_dim=128,leaky=False):
         super(ShapePrior,self).__init__()
 
 
@@ -39,21 +41,28 @@ class ShapePrior(nn.Module):
                                       dim=3,
                                       hidden_dim=128)
 
-        self.fc1=nn.Linear(3,128)
+        self.fc1=nn.Conv1d(3,hidden_dim,1)
         self.dblock1=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
-                                          hidden_dim=128)
+                                  hidden_dim=hidden_dim,
+                                  leaky=leaky)
         self.dblock2=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
-                                          hidden_dim=128)
+                                  hidden_dim=hidden_dim,
+                                  leaky=leaky)
         self.dblock3=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
-                                          hidden_dim=128)                                  
+                                  hidden_dim=hidden_dim,
+                                  leaky=leaky)                                                    
         self.dblock4=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
-                                          hidden_dim=128)
+                                  hidden_dim=hidden_dim,
+                                  leaky=leaky)
         self.dblock5=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
-                                          hidden_dim=128)       
+                                  hidden_dim=hidden_dim,
+                                  leaky=leaky)                                                     
         self.CBatchNorm=CBatchNorm1d(c_dim=cfg.config['data']['c_dim'],
-                                     f_dim=128)
-        self.fc2=nn.Linear(128,1)
-        self.act=nn.LeakyReLU()
+                                     f_dim=hidden_dim)
+        self.fc2=nn.Conv1d(hidden_dim,1,1)
+        self.act=nn.ReLU()
+        if leaky:
+            self.act=nn.LeakyReLU()
 
     
     def generate_latent(self,pc):
@@ -65,15 +74,17 @@ class ShapePrior(nn.Module):
             self.latent:    shape embedding of size (N x c_dim)     
         '''
         self.latent=self.encoder(pc)
+        return self.latent
 
     def forward(self,query_points):
         '''
         Returns the signed distance of each query point to the surface
         Args: 
-            query_points: query points of the form (batch_size_pc x batch_size_queries x 3) 
+            query_points: query points of the form (N x N_P x 3) 
         Returns:
-            out:    signed distance of the form  (batch_size_pc x batch_size_queries x 1)    
+            out:    signed distance of the form  (N x N_P x 1)    
         '''
+        query_points=query_points.transpose(1,2)
         out=self.fc1(query_points)
         out=self.dblock1(out,self.latent)
         out=self.dblock2(out,self.latent)
@@ -82,5 +93,6 @@ class ShapePrior(nn.Module):
         out=self.dblock5(out,self.latent)
         out=self.act(self.CBatchNorm(out,self.latent))
         out=torch.tanh(self.fc2(out))
+        out=out.transpose(1,2)
 
         return out
