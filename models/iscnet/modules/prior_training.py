@@ -15,34 +15,36 @@ class ShapePrior(nn.Module):
 
     def __init__(self):
         super(ShapePrior,self).__init__()
-
-
+        
+        cuda=True
+        if cuda:
+            self.device=torch.device('cuda')
         '''Definition of the modules'''
         leaky=False
         self.encoder = ResnetPointnet(c_dim=128,
                                       dim=3,
-                                      hidden_dim=512)
+                                      hidden_dim=512).to(self.device)
 
         hidden_dim=128
-        self.fc1=nn.Conv1d(3,hidden_dim,1)
+        self.fc1=nn.Conv1d(3,hidden_dim,1).to(self.device)
         self.dblock1=DecoderBlock(c_dim=128,
                                   hidden_dim=hidden_dim,
-                                  leaky=leaky)
+                                  leaky=leaky).to(self.device)
         self.dblock2=DecoderBlock(c_dim=128,
                                   hidden_dim=hidden_dim,
-                                  leaky=leaky)
+                                  leaky=leaky).to(self.device)
         self.dblock3=DecoderBlock(c_dim=128,
                                   hidden_dim=hidden_dim,
-                                  leaky=leaky)                                                    
+                                  leaky=leaky).to(self.device)                                                   
         self.dblock4=DecoderBlock(c_dim=128,
                                   hidden_dim=hidden_dim,
-                                  leaky=leaky)
+                                  leaky=leaky).to(self.device)
         self.dblock5=DecoderBlock(c_dim=128,
                                   hidden_dim=hidden_dim,
-                                  leaky=leaky)                                                     
+                                  leaky=leaky).to(self.device)                                                     
         self.CBatchNorm=CBatchNorm1d(c_dim=128,
-                                     f_dim=hidden_dim)
-        self.fc2=nn.Conv1d(hidden_dim,1,1)
+                                     f_dim=hidden_dim).to(self.device)
+        self.fc2=nn.Conv1d(hidden_dim,1,1).to(self.device)
         self.act=nn.ReLU()
         if leaky:
             self.act=nn.LeakyReLU()
@@ -90,9 +92,9 @@ class ShapePrior(nn.Module):
 
         running_loss=0
         for i, data in enumerate(loader):
-            point_cloud = data['point_cloud']
-            query_points = data['query_points']
-            gt_sdf = data['sdf']
+            point_cloud = data['point_cloud'].to(self.device)
+            query_points = data['query_points'].to(self.device)
+            gt_sdf = data['sdf'].to(self.device)
             optim.zero_grad()
             self.generate_latent(point_cloud)
             preds=self.forward(query_points)
