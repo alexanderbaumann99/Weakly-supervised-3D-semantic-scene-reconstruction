@@ -1,10 +1,14 @@
 from models.iscnet.modules.prior_training import ShapePrior
 import torch
 from torch.utils.tensorboard import SummaryWriter
+from models.iscnet.modules.prior_dataloader import PriorDataLoader
+from configs.config_utils import mount_external_config
+from configs.config_utils import CONFIG
 
+cfg = CONFIG('configs/config_files/ISCNet.yaml')
+cfg = mount_external_config(cfg)
 
-
-loader=torch.randn(1)
+loader = PriorDataLoader(cfg)
 writer = SummaryWriter()
 model=ShapePrior()
 optimizer = torch.optim.Adam(model.parameters(),lr=1e-4, weight_decay=0)

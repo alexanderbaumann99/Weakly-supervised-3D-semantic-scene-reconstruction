@@ -8,9 +8,10 @@ device:
   gpu_ids: '0,1'
   num_workers: 8
 data:
-  dataset: scannet
+  dataset: shapenet
   split: datasets/splits/fullscan
-  num_point: 80000
+  num_points: 80000
+  num_query_points: 100000
   num_target: 256
   vote_factor: 1
   cluster_sampling: vote_fps

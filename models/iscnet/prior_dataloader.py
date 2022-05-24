@@ -1,6 +1,4 @@
-# Dataloader of ISCNet.
-# author: ynie
-# date: Feb, 2020
+# Prior Dataloader of ISCNet.
 # Cite: VoteNet
 
 import torch.utils.data
@@ -18,10 +16,9 @@ MEAN_COLOR_RGB = np.array([121.87661, 109.73591, 95.61673])
 class ShapeNetDataset(torch.utils.data.Dataset):
     def __init__(self, cfg, mode):
         super(ShapeNetDataset, self).__init__(cfg, mode)
-        self.num_points = 100000 #cfg.config['data']['num_point']
-        self.num_query_points = 100000 #cfg.config['data']['num_point']
+        self.num_points = cfg.config['data']['num_points']
+        self.num_query_points = cfg.config['data']['num_query_points']
         self.data_path = cfg.config['data']['shapenet_path']
-        self.phase = cfg.config[self.mode]['phase']
 
     def __getitem__(self, idx):
         """
