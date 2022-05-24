@@ -6,16 +6,20 @@ from torch.utils.data import DataLoader
 import numpy as np
 import os
 from plyfile import PlyData
+from torch.utils.data import Dataset
 
 import pickle
 
 
-class ShapeNetDataset(torch.utils.data.Dataset):
+class ShapeNetDataset(Dataset):
     def __init__(self, cfg, mode):
-        super(ShapeNetDataset, self).__init__(cfg, mode)
+        #super(ShapeNetDataset, self).__init__(cfg, mode)   #define later for splitting
         self.num_points = cfg.config['data']['num_points']
         self.num_query_points = cfg.config['data']['num_query_points']
         self.data_path = cfg.config['data']['shapenet_path']
+
+    def __len__(self):
+        return 30 #CHANGE!!! only for testing
 
     def __getitem__(self, idx):
         """

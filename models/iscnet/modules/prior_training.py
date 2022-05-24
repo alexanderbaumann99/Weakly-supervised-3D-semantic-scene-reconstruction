@@ -56,7 +56,7 @@ class ShapePrior(nn.Module):
             self.latent:    shape embedding of size (N x c_dim)     
         '''
         self.latent=self.encoder(pc)
-        return self.latent
+        #return self.latent
 
     def forward(self,query_points):
         '''
@@ -94,8 +94,9 @@ class ShapePrior(nn.Module):
             query_points = data['query_points']
             gt_sdf = data['sdf']
             optim.zero_grad()
-            c=self.generate_latent(point_cloud)
-            preds=self.forward(query_points,c)
+            self.generate_latent(point_cloud)
+            preds=self.forward(query_points)
+            preds=preds.squeeze()
             loss=F.mse_loss(preds,gt_sdf,reduction='mean')
             loss.backward()
             optim.step()

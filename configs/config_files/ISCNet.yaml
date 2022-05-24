@@ -10,8 +10,8 @@ device:
 data:
   dataset: shapenet
   split: datasets/splits/fullscan
-  num_points: 80000
-  num_query_points: 100000
+  num_points: 10000 #change!! only for testing
+  num_query_points: 10000 #change!! only for testing
   num_target: 256
   vote_factor: 1
   cluster_sampling: vote_fps
@@ -68,7 +68,7 @@ train:
   epochs: 240
   phase: 'completion'
   freeze: []
-  batch_size: 8
+  batch_size: 2 #change!! only for testing
 val:
   phase: 'completion'
   batch_size: 8

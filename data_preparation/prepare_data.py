@@ -8,8 +8,8 @@ import pandas as pd
 def prepare_data():#data_path):
     data_path = '../../data/shapenet_examples'
     output_dir = '../datasets/ShapeNetv2_data'
-    sample_point_count = 1000000 #config
-    query_point_count = 1000000 #config
+    sample_point_count = 50000 #config, only for testing
+    query_point_count = 50000 #config
     i = 0
     for dir in os.listdir(data_path):
         file_path = os.path.join(*[data_path,dir,'models','model_normalized.obj'])
