@@ -1,7 +1,7 @@
 from models.iscnet.modules.prior_training import ShapePrior
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from models.iscnet.modules.prior_dataloader import PriorDataLoader
+from models.iscnet.prior_dataloader import PriorDataLoader
 from configs.config_utils import mount_external_config
 from configs.config_utils import CONFIG
 
