@@ -19,7 +19,7 @@ class ShapeNetDataset(Dataset):
         self.data_path = cfg.config['data']['shapenet_path']
 
     def __len__(self):
-        return 30 #CHANGE!!! only for testing
+        return len(os.listdir(*[self.data_path]))
 
     def __getitem__(self, idx):
         """
