@@ -5,11 +5,11 @@ from pyntcloud import PyntCloud
 import pandas as pd
 
 #takes way too long
-def prepare_data():
-    data_path = os.path.join('example','shapenet')
-    output_dir = os.path.join('example','shapenet_prep')
-    sample_point_count = 100000 #config
-    query_point_count = 100000 #config
+def prepare_data():#data_path):
+    data_path = '../../data/shapenet_examples'
+    output_dir = '../datasets/ShapeNetv2_data'
+    sample_point_count = 1000000 #config
+    query_point_count = 1000000 #config
     i = 0
     for dir in os.listdir(data_path):
         file_path = os.path.join(*[data_path,dir,'models','model_normalized.obj'])
@@ -28,3 +28,8 @@ def prepare_data():
         query_point_cloud.to_file(os.path.join(sub_output_dir,'query_points.ply'))
         #os.rmdir(dir)
         i += 1
+
+if __name__ == '__main__':
+    prepare_data()
+
+

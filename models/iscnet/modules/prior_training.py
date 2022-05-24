@@ -90,11 +90,13 @@ class ShapePrior(nn.Module):
 
         running_loss=0
         for i, data in enumerate(loader):
-            shape_net,query_points,gt_val=data
+            point_cloud = data['point_cloud']
+            query_points = data['query_points']
+            gt_sdf = data['sdf']
             optim.zero_grad()
-            c=self.generate_latent(shape_net)
+            c=self.generate_latent(point_cloud)
             preds=self.forward(query_points,c)
-            loss=F.mse_loss(preds,gt_val,reduction='mean')
+            loss=F.mse_loss(preds,gt_sdf,reduction='mean')
             loss.backward()
             optim.step()
 

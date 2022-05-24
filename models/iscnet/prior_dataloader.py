@@ -9,9 +9,6 @@ from plyfile import PlyData
 
 import pickle
 
-default_collate = torch.utils.data.dataloader.default_collate
-MAX_NUM_OBJ = 64
-MEAN_COLOR_RGB = np.array([121.87661, 109.73591, 95.61673])
 
 class ShapeNetDataset(torch.utils.data.Dataset):
     def __init__(self, cfg, mode):
