@@ -9,10 +9,11 @@ cfg = CONFIG('configs/config_files/ISCNet.yaml')
 cfg = mount_external_config(cfg)
 
 loader = PriorDataLoader(cfg)
-writer = SummaryWriter()
+writer = SummaryWriter(log_dir=cfg.save_path)
 model=ShapePrior()
 optimizer = torch.optim.Adam(model.parameters(),lr=1e-4, weight_decay=0)
 max_epochs=100
+cfg.write_config()
 
 for epoch in range(max_epochs):
     epoch_loss=model.training_epoch(loader,optimizer)
