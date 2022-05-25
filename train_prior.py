@@ -19,5 +19,5 @@ for epoch in range(max_epochs):
     epoch_loss=model.training_epoch(loader,optimizer)
     writer.add_scalar("Loss/train", epoch_loss, epoch)
     if epoch%10==0:
-        torch.save(model.state_dict(), "weights_epoch_"+str(epoch))
+        torch.save(model.state_dict(), cfg.save_path + "/weights_epoch_"+str(epoch+1))
     
