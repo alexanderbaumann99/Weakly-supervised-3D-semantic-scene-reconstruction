@@ -13,36 +13,37 @@ class ShapePrior(nn.Module):
         c_dim           : dimension of conditional latent vector
     """
 
-    def __init__(self):
+    def __init__(self,cfg):
         super(ShapePrior,self).__init__()
         
+        self.cfg=cfg
         cuda=True
         if cuda:
             self.device=torch.device('cuda')
         '''Definition of the modules'''
         leaky=False
-        self.encoder = ResnetPointnet(c_dim=128,
+        self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim'],
                                       dim=3,
                                       hidden_dim=512).to(self.device)
 
         hidden_dim=128
         self.fc1=nn.Conv1d(3,hidden_dim,1).to(self.device)
-        self.dblock1=DecoderBlock(c_dim=128,
+        self.dblock1=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                   hidden_dim=hidden_dim,
                                   leaky=leaky).to(self.device)
-        self.dblock2=DecoderBlock(c_dim=128,
+        self.dblock2=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                   hidden_dim=hidden_dim,
                                   leaky=leaky).to(self.device)
-        self.dblock3=DecoderBlock(c_dim=128,
+        self.dblock3=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                   hidden_dim=hidden_dim,
                                   leaky=leaky).to(self.device)                                                   
-        self.dblock4=DecoderBlock(c_dim=128,
+        self.dblock4=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                   hidden_dim=hidden_dim,
                                   leaky=leaky).to(self.device)
-        self.dblock5=DecoderBlock(c_dim=128,
+        self.dblock5=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                   hidden_dim=hidden_dim,
                                   leaky=leaky).to(self.device)                                                     
-        self.CBatchNorm=CBatchNorm1d(c_dim=128,
+        self.CBatchNorm=CBatchNorm1d(c_dim=cfg.config['data']['c_dim'],
                                      f_dim=hidden_dim).to(self.device)
         self.fc2=nn.Conv1d(hidden_dim,1,1).to(self.device)
         self.act=nn.ReLU()
@@ -81,7 +82,7 @@ class ShapePrior(nn.Module):
 
         return out
 
-    def training_epoch(self,loader,optim):
+    def training_epoch(self,loader,optim,epoch):
         '''
         Pre-train procedure of the Shape Prior on the ShapeNet dataset
             Args of Loader:
@@ -104,6 +105,8 @@ class ShapePrior(nn.Module):
             optim.step()
 
             running_loss+=loss.item()
+            if (i+1)%10==0:
+                self.cfg.log_string("EPOCH %d\t ITER %d\t LOSS %.3f" %(epoch+1,i+1,running_loss/(i+1)))
         epoch_mean=running_loss/(i+1)
 
         return epoch_mean

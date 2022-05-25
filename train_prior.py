@@ -7,17 +7,22 @@ from configs.config_utils import CONFIG
 
 cfg = CONFIG('configs/config_files/ISCNet.yaml')
 cfg = mount_external_config(cfg)
-
-loader = PriorDataLoader(cfg)
 writer = SummaryWriter(log_dir=cfg.save_path)
-model=ShapePrior()
-optimizer = torch.optim.Adam(model.parameters(),lr=1e-4, weight_decay=0)
-max_epochs=100
-cfg.write_config()
 
+cfg.log_string('Load data...')
+loader = PriorDataLoader(cfg)
+
+cfg.log_string('Load model...')
+model=ShapePrior(cfg)
+optimizer = torch.optim.Adam(model.parameters(),lr=1e-4, weight_decay=0)
+
+max_epochs=100
+cfg.log_string('Start Training...')
 for epoch in range(max_epochs):
-    epoch_loss=model.training_epoch(loader,optimizer)
-    writer.add_scalar("Loss/train", epoch_loss, epoch)
-    if epoch%10==0:
+    epoch_loss=model.training_epoch(loader,optimizer,epoch)
+    cfg.log_string("EPOCH %d\t LOSS %.5f" %(epoch+1,epoch_loss))
+    writer.add_scalar("Loss/train", epoch_loss, epoch+1)
+    if (epoch+1)%10==0:
         torch.save(model.state_dict(), cfg.save_path + "/weights_epoch_"+str(epoch+1))
     
+cfg.write_config()
