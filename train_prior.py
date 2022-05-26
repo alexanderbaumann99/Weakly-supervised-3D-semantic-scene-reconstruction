@@ -2,6 +2,7 @@ from models.iscnet.modules.prior_training import ShapePrior
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from models.iscnet.prior_dataloader import PriorDataLoader
+from models.optimizers import load_optimizer
 from configs.config_utils import mount_external_config
 from configs.config_utils import CONFIG
 
@@ -14,7 +15,7 @@ loader = PriorDataLoader(cfg)
 
 cfg.log_string('Load model...')
 model=ShapePrior(cfg)
-optimizer = torch.optim.Adam(model.parameters(),lr=1e-4, weight_decay=0)
+optimizer=load_optimizer(cfg.config,model)
 
 max_epochs=100
 cfg.log_string('Start Training...')
