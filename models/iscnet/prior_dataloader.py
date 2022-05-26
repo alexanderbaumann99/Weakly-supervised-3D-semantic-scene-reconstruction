@@ -1,6 +1,7 @@
 # Prior Dataloader of ISCNet.
 # Cite: VoteNet
 
+from cv2 import split
 import torch.utils.data
 from torch.utils.data import DataLoader
 import numpy as np
@@ -59,14 +60,19 @@ class ShapeNetDataset(Dataset):
 
 
 
-def PriorDataLoader(cfg, mode='train'):
+def PriorDataLoader(cfg,splits, mode='train'):
     if cfg.config['data']['dataset'] == 'shapenet':
         dataset = ShapeNetDataset(cfg, mode)
     else:
         raise NotImplementedError
-
-    dataloader = DataLoader(dataset=dataset,
+    lengths=[round(a*len(dataset)) for a in splits]
+    train,test=torch.utils.data.random_split(dataset,lengths)
+    train_loader = DataLoader(dataset=train,
                             num_workers=cfg.config['device']['num_workers'],
                             batch_size=cfg.config[mode]['batch_size'],
-                            shuffle=(mode == 'train'))
-    return dataloader
+                            shuffle=True)
+    test_loader = DataLoader(dataset=test,
+                            num_workers=cfg.config['device']['num_workers'],
+                            batch_size=cfg.config[mode]['batch_size'],
+                            shuffle=False)
+    return train_loader,test_loader

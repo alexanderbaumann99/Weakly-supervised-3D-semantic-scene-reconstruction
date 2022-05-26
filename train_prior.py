@@ -1,8 +1,8 @@
 from models.iscnet.modules.prior_training import ShapePrior
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from models.iscnet.prior_dataloader import PriorDataLoader
-from models.optimizers import load_optimizer
+from models.iscnet.prior_dataloader import PriorDataLoader,ShapeNetDataset
+from models.optimizers import load_optimizer,load_bnm_scheduler,load_scheduler
 from configs.config_utils import mount_external_config
 from configs.config_utils import CONFIG
 
@@ -11,19 +11,29 @@ cfg = mount_external_config(cfg)
 writer = SummaryWriter(log_dir=cfg.save_path)
 
 cfg.log_string('Load data...')
-loader = PriorDataLoader(cfg)
+train_loader,test_loader = PriorDataLoader(cfg,splits=[0.75,0.25])
 
 cfg.log_string('Load model...')
 model=ShapePrior(cfg)
 optimizer=load_optimizer(cfg.config,model)
+scheduler = load_scheduler(config=cfg.config, optimizer=optimizer)
+'''BN momentum scheduler'''
+bnm_scheduler = load_bnm_scheduler(cfg=cfg, net=model, start_epoch=scheduler.last_epoch)
 
-max_epochs=100
 cfg.log_string('Start Training...')
+max_epochs=10
 for epoch in range(max_epochs):
-    epoch_loss=model.training_epoch(loader,optimizer,epoch)
-    cfg.log_string("EPOCH %d\t LOSS %.5f" %(epoch+1,epoch_loss))
-    writer.add_scalar("Loss/train", epoch_loss, epoch+1)
-    if (epoch+1)%10==0:
+    lrs = [optimizer.param_groups[i]['lr'] for i in range(len(optimizer.param_groups))]
+    cfg.log_string('Current learning rates are: ' + str(lrs) + '.')
+    bnm_scheduler.show_momentum()
+    epoch_loss_train=model.training_epoch(train_loader,optimizer,epoch)
+    cfg.log_string("TRAINING\t EPOCH %d\t LOSS %.5f" %(epoch+1,epoch_loss_train))
+    epoch_loss_test=model.testing_epoch(test_loader,epoch)
+    cfg.log_string("TESTING \t EPOCH %d\t LOSS %.5f" %(epoch+1,epoch_loss_test))
+    scheduler.step(epoch_loss_test)
+    bnm_scheduler.step()
+    writer.add_scalar("Loss/train", epoch_loss_train, epoch+1)
+    writer.add_scalar("Loss/test",  epoch_loss_test, epoch+1)
+    if (epoch+1)%2==0:
         torch.save(model.state_dict(), cfg.save_path + "/weights_epoch_"+str(epoch+1))
-    
 cfg.write_config()

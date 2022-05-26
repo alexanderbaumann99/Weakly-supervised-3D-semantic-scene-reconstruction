@@ -110,6 +110,32 @@ class ShapePrior(nn.Module):
         epoch_mean=running_loss/(i+1)
 
         return epoch_mean
+
+    def testing_epoch(self,loader,epoch):
+        '''
+        Pre-train procedure of the Shape Prior on the ShapeNet dataset
+            Args of Loader:
+                shape_net:      batches of point clouds (N x N_P x 3)
+                query_points:   query points            (N x M_P x 3)  
+                gt_val:         Ground truth SDF values (N x M_P x 1)
+        '''
+        running_loss=0
+        for i, data in enumerate(loader):
+            point_cloud = data['point_cloud'].to(self.device)
+            query_points = data['query_points'].to(self.device)
+            gt_sdf = data['sdf'].to(self.device)
+            with torch.no_grad():
+                self.generate_latent(point_cloud)
+                preds=self.forward(query_points)
+                preds=preds.squeeze()
+                loss=F.mse_loss(preds,gt_sdf,reduction='mean')
+            running_loss+=loss.item()
+            if (i+1)%10==0:
+                self.cfg.log_string("TESTING \t EPOCH %d\t ITER %d\t LOSS %.3f" %(epoch+1,i+1,running_loss/(i+1)))
+        epoch_mean=running_loss/(i+1)
+
+        return epoch_mean
+
     
 
 
