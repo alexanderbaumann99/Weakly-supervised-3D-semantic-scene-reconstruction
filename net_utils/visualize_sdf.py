@@ -27,7 +27,7 @@ def create_mesh(
     model.eval()
 
     # NOTE: the voxel_origin is actually the (bottom, left, down) corner, not the middle
-    voxel_origin = [0,0,0]
+    voxel_origin = [-1, -1, -1]
     voxel_size = 2.0 / (N - 1)
 
     overall_index = torch.arange(0, N ** 3, 1, out=torch.LongTensor())
