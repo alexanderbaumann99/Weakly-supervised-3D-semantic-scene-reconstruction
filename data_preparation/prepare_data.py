@@ -17,7 +17,7 @@ def prepare_data():#data_path):
             #maybe change to scan later
             surface_pc = get_surface_point_cloud(mesh, surface_point_method='sample', sample_point_count=sample_point_count)
             pc_points = surface_pc.points
-            query_points, sdf = surface_pc.sample_sdf_near_surface(number_of_points=query_point_count)
+            query_points, sdf = surface_pc.sample_sdf_near_surface(number_of_points=query_point_count,ratio_surface=0.6)
 
             #save
             sub_output_dir = os.path.join(output_dir,str(i))
