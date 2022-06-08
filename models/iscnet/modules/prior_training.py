@@ -131,7 +131,7 @@ class ShapePrior(nn.Module):
                 loss=F.mse_loss(preds,torch.sign(gt_sdf),reduction='mean')
             running_loss+=loss.item()
             if (i+1)%10==0:
-                self.cfg.log_string("TESTING \t EPOCH %d\t ITER %d\t LOSS %.3f" %(epoch+1,i+1,running_loss/(i+1)))
+                self.cfg.log_string("VALIDATION \t EPOCH %d\t ITER %d\t LOSS %.3f" %(epoch+1,i+1,running_loss/(i+1)))
         epoch_mean=running_loss/(i+1)
 
         return epoch_mean
