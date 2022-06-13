@@ -17,7 +17,7 @@ class ShapePrior(nn.Module):
         super(ShapePrior,self).__init__()
         
         self.cfg=cfg
-        self.clamp_dist = cfg.config['model']['ShapePrior']["ClampingDistance"]
+        self.clamp_dist = cfg.config['model']['shape_prior']["ClampingDistance"]
         cuda=True
         if cuda:
             self.device=torch.device('cuda')
@@ -102,8 +102,8 @@ class ShapePrior(nn.Module):
             preds=self.forward(query_points)
             preds=preds.squeeze()
             #loss=F.mse_loss(preds,torch.sign(gt_sdf),reduction='mean')
-            preds = torch.clamp(pred_sdf, -self.clamp_dist, self.clamp_dist)
-            loss = nn.L1Loss(preds,gt_sdf,reduction='mean') 
+            preds = torch.clamp(preds, -self.clamp_dist, self.clamp_dist)
+            loss = F.l1_loss(preds,gt_sdf,reduction='mean') 
             loss.backward()
             optim.step()
 
