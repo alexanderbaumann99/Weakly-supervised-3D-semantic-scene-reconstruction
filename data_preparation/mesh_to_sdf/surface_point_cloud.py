@@ -9,6 +9,8 @@ import numpy as np
 from sklearn.neighbors import KDTree
 import math
 import pyrender
+import torch
+from dgl.geometry import farthest_point_sampler as fps
 
 class BadMeshException(Exception):
     pass
@@ -23,11 +25,22 @@ class SurfacePointCloud:
         self.kd_tree = KDTree(points)
 
     def get_random_surface_points(self, count, use_scans=True):
-        if use_scans:
+        """ if use_scans:
             indices = np.random.choice(self.points.shape[0], count)
             return self.points[indices, :]
         else:
-            return self.mesh.sample(count)
+            return self.mesh.sample(count) """
+        points=torch.Tensor(self.points)
+        B=1
+        N=points.shape[0]
+        result = torch.zeros((count * B), dtype=torch.long)
+        dist = torch.zeros((B * N))
+        start_idx = torch.randint(0, N - 1, (B, ), dtype=torch.long)
+        fps(data=points,batch_size=B,sample_points=count,dist=dist,start_idx=start_idx,result=result)
+        result=result.numpy()
+        result=self.points[result]
+
+        return result
 
     def get_sdf(self, query_points, use_depth_buffer=False, sample_count=11, return_gradients=False):
         if use_depth_buffer:
