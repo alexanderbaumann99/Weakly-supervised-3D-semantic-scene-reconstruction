@@ -21,7 +21,7 @@ scheduler = load_scheduler(config=cfg.config, optimizer=optimizer)
 bnm_scheduler = load_bnm_scheduler(cfg=cfg, net=model, start_epoch=scheduler.last_epoch)
 
 cfg.log_string('Start Training...')
-max_epochs=50
+max_epochs=cfg.config['train']['epochs']
 for epoch in range(max_epochs):
     lrs = [optimizer.param_groups[i]['lr'] for i in range(len(optimizer.param_groups))]
     cfg.log_string('Current learning rates are: ' + str(lrs) + '.')
