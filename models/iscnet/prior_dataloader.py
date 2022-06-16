@@ -49,7 +49,8 @@ class ShapeNetDataset(Dataset):
             query_points[:, 3] = plydata['vertex'].data['sdf']
 
         #sample random pc points and query points
-        points = points[np.random.choice(points.shape[0], self.num_points, replace=False)]
+        #points = points[np.random.choice(points.shape[0], self.num_points, replace=False)]
+        points = points[:self.num_points]
         query_points = query_points[np.random.choice(query_points.shape[0], self.num_query_points, replace=False)]
 
         ret_dict = {}
