@@ -3,6 +3,8 @@ from models.iscnet.modules.layers import ResnetPointnet, CBatchNorm1d
 import torch.nn.functional as F
 import torch.nn as nn
 import torch
+from net_utils.sampling import farthest_point_sampler_batch
+import numpy as np
 
 
 
@@ -94,9 +96,20 @@ class ShapePrior(nn.Module):
 
         running_loss=0
         for i, data in enumerate(loader):
-            point_cloud = data['point_cloud'].to(self.device)
+            """ point_cloud = data['point_cloud'].to(self.device)
             query_points = data['query_points'].to(self.device)
-            gt_sdf = data['sdf'].to(self.device)
+            gt_sdf = data['sdf'].to(self.device) """
+            point_cloud = data['point_cloud'].to(self.device)
+            query_points_surface = data['query_points_surface']
+            query_points_sphere = data['query_points_sphere']
+            sdf_surface = data['sdf_surface']
+            sdf_sphere = data['sdf_sphere']
+            print("get batch ...")
+            query_points,gt_sdf = self.get_batch(query_points_surface,query_points_sphere,sdf_surface,sdf_sphere,1024,1024)
+            print(query_points.shape,gt_sdf.shape)
+            query_points = query_points.to(self.device)
+            gt_sdf = gt_sdf.to(self.device)
+
             optim.zero_grad()
             self.generate_latent(point_cloud)
             preds=self.forward(query_points)
@@ -124,9 +137,20 @@ class ShapePrior(nn.Module):
         '''
         running_loss=0
         for i, data in enumerate(loader):
-            point_cloud = data['point_cloud'].to(self.device)
+            """ point_cloud = data['point_cloud'].to(self.device)
             query_points = data['query_points'].to(self.device)
-            gt_sdf = data['sdf'].to(self.device)
+            gt_sdf = data['sdf'].to(self.device) """
+            point_cloud = data['point_cloud'].to(self.device)
+            query_points_surface = data['query_points_surface']
+            query_points_sphere = data['query_points_sphere']
+            sdf_surface = data['sdf_surface']
+            sdf_sphere = data['sdf_sphere']
+            print("get batch ...")
+            query_points,gt_sdf = self.get_batch(query_points_surface,query_points_sphere,sdf_surface,sdf_sphere,1024,1024)
+            print(query_points.shape,gt_sdf.shape)
+            query_points = query_points.to(self.device)
+            gt_sdf = gt_sdf.to(self.device)
+            
             with torch.no_grad():
                 self.generate_latent(point_cloud)
                 preds=self.forward(query_points)
@@ -140,6 +164,28 @@ class ShapePrior(nn.Module):
         epoch_mean=running_loss/(i+1)
 
         return epoch_mean
+
+    def get_batch(self,query_points_surface,query_points_sphere,sdf_surface,sdf_sphere,n_surface,n_sphere):
+        batch_size=query_points_surface.shape[0]
+
+        idx=farthest_point_sampler_batch(query_points_surface,n_surface)
+        query_points_surface_sampled=torch.empty((batch_size,n_surface,3))
+        sdf_surface_sampled=torch.empty((batch_size,n_surface))
+        for j in range(batch_size):
+            query_points_surface_sampled[j,:,:]=query_points_surface[j,idx[j,:],:]
+            sdf_surface_sampled[j,:]=sdf_surface[j,idx[j,:]]
+        
+        idx = np.random.choice(query_points_sphere.shape[1], (query_points_sphere.shape[0],n_sphere), replace=False)
+        query_points_sphere_sampled=torch.empty((batch_size,n_sphere,3))
+        sdf_sphere_sampled=torch.empty((batch_size,n_surface))
+        for j in range(batch_size):
+            query_points_sphere_sampled[j,:,:]=query_points_sphere[j,idx[j,:],:]
+            sdf_sphere_sampled[j,:]=sdf_sphere[j,idx[j,:]]
+
+        query_points = torch.cat([query_points_surface_sampled,query_points_sphere_sampled],axis=1)
+        sdf = torch.cat([sdf_surface_sampled,sdf_sphere_sampled],axis=1)
+        
+        return query_points,sdf
 
     
 

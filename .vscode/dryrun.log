@@ -1,0 +1,6 @@
+make.exe --dry-run --always-make --keep-going --print-directory
+make.exe: Entering directory 'c:/Users/alexb/Documents/10. Semester/ADL4CV/Git/Weakly-supervised-3D-semantic-scene-reconstruction'
+make.exe: Leaving directory 'c:/Users/alexb/Documents/10. Semester/ADL4CV/Git/Weakly-supervised-3D-semantic-scene-reconstruction'
+ 
+make.exe: *** No targets specified and no makefile found.  Stop.
+
