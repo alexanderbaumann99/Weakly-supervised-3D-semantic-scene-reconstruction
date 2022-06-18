@@ -100,15 +100,14 @@ class ShapePrior(nn.Module):
             query_points = data['query_points'].to(self.device)
             gt_sdf = data['sdf'].to(self.device) """
             point_cloud = data['point_cloud'].to(self.device)
-            query_points_surface = data['query_points_surface']
-            query_points_sphere = data['query_points_sphere']
-            sdf_surface = data['sdf_surface']
-            sdf_sphere = data['sdf_sphere']
-            print("get batch ...")
+            query_points_surface = data['query_points_surface'].to(self.device)
+            query_points_sphere = data['query_points_sphere'].to(self.device)
+            sdf_surface = data['sdf_surface'].to(self.device)
+            sdf_sphere = data['sdf_sphere'].to(self.device)
             query_points,gt_sdf = self.get_batch(query_points_surface,query_points_sphere,sdf_surface,sdf_sphere,1024,1024)
-            print(query_points.shape,gt_sdf.shape)
-            query_points = query_points.to(self.device)
-            gt_sdf = gt_sdf.to(self.device)
+         
+            query_points = query_points
+            gt_sdf = gt_sdf
 
             optim.zero_grad()
             self.generate_latent(point_cloud)
@@ -141,15 +140,14 @@ class ShapePrior(nn.Module):
             query_points = data['query_points'].to(self.device)
             gt_sdf = data['sdf'].to(self.device) """
             point_cloud = data['point_cloud'].to(self.device)
-            query_points_surface = data['query_points_surface']
-            query_points_sphere = data['query_points_sphere']
-            sdf_surface = data['sdf_surface']
-            sdf_sphere = data['sdf_sphere']
-            print("get batch ...")
+            query_points_surface = data['query_points_surface'].to(self.device)
+            query_points_sphere = data['query_points_sphere'].to(self.device)
+            sdf_surface = data['sdf_surface'].to(self.device)
+            sdf_sphere = data['sdf_sphere'].to(self.device)
             query_points,gt_sdf = self.get_batch(query_points_surface,query_points_sphere,sdf_surface,sdf_sphere,1024,1024)
-            print(query_points.shape,gt_sdf.shape)
-            query_points = query_points.to(self.device)
-            gt_sdf = gt_sdf.to(self.device)
+
+            query_points = query_points
+            gt_sdf = gt_sdf
             
             with torch.no_grad():
                 self.generate_latent(point_cloud)
@@ -169,15 +167,15 @@ class ShapePrior(nn.Module):
         batch_size=query_points_surface.shape[0]
 
         idx=farthest_point_sampler_batch(query_points_surface,n_surface)
-        query_points_surface_sampled=torch.empty((batch_size,n_surface,3))
-        sdf_surface_sampled=torch.empty((batch_size,n_surface))
+        query_points_surface_sampled=torch.empty((batch_size,n_surface,3)).to(self.device)
+        sdf_surface_sampled=torch.empty((batch_size,n_surface)).to(self.device)
         for j in range(batch_size):
             query_points_surface_sampled[j,:,:]=query_points_surface[j,idx[j,:],:]
             sdf_surface_sampled[j,:]=sdf_surface[j,idx[j,:]]
         
         idx = np.random.choice(query_points_sphere.shape[1], (query_points_sphere.shape[0],n_sphere), replace=False)
-        query_points_sphere_sampled=torch.empty((batch_size,n_sphere,3))
-        sdf_sphere_sampled=torch.empty((batch_size,n_surface))
+        query_points_sphere_sampled=torch.empty((batch_size,n_sphere,3)).to(self.device)
+        sdf_sphere_sampled=torch.empty((batch_size,n_surface)).to(self.device)
         for j in range(batch_size):
             query_points_sphere_sampled[j,:,:]=query_points_sphere[j,idx[j,:],:]
             sdf_sphere_sampled[j,:]=sdf_sphere[j,idx[j,:]]
