@@ -185,6 +185,25 @@ class ShapePrior(nn.Module):
         
         return query_points,sdf
 
+    def save_shape_embedding(self,loader):
+        
+        num_cats=10
+        emb_per_cat = torch.zeros((num_cats,self.cfg.config['data']['c_dim'])).to(self.device)
+        n_obj_per_cat = torch.zeros((num_cats,)).to(self.device)
+
+        for i, data in enumerate(loader):
+            point_cloud = data['point_cloud'].to(self.device)
+            cat = data['ShapeNetID']
+            with torch.no_grad():
+                shape_embs=self.encoder(point_cloud)
+            for j in range(shape_embs.shape[0]):
+                emb_per_cat[cat[j],:]+=shape_embs[j,:]
+                n_obj_per_cat[cat[j],:]+=1
+
+        emb_per_cat/=n_obj_per_cat
+        torch.save(emb_per_cat,'shape_embeddings_shapennet.pt')
+
+        return emb_per_cat
     
 
 
