@@ -147,12 +147,17 @@ class SurfacePointCloud:
         elif sign_method == 'depth':
             sdf_near_surface = self.get_sdf_in_batches(query_points_near_surface, use_depth_buffer=True, return_gradients=return_gradients)
             sdf_sphere = self.get_sdf_in_batches(unit_sphere_points, use_depth_buffer=True, sample_count=normal_sample_count, return_gradients=return_gradients)
-        
         else:
             raise ValueError('Unknown sign determination method: {:s}'.format(sign_method))
+            
         if return_gradients:
             sdf_near_surface, gradients_near_surface = sdf_near_surface
             sdf_sphere, gradients_sphere = sdf_sphere
+            return query_points_near_surface, sdf_near_surface,unit_sphere_points,sdf_sphere, gradients
+        else:
+            return query_points_near_surface, sdf_near_surface,unit_sphere_points,sdf_sphere
+
+
 
 
     def show(self):
