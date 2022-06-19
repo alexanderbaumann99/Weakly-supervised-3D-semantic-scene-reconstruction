@@ -3,6 +3,7 @@ import trimesh
 from mesh_to_sdf import get_surface_point_cloud
 from pyntcloud import PyntCloud
 import pandas as pd
+import numpy as np
 
 def prepare_data():#data_path):
     data_path = '../../data/watertight_scaled_simplified'
@@ -34,6 +35,22 @@ def prepare_data():#data_path):
         if i > 1000: #for testing only
             break
 
+def get_id():
+    data_path = '../../data/watertight_scaled_simplified'
+    output_dir = '../datasets/ShapeNetv2_data_simplified'
+    i=0
+    for dir_1 in os.listdir(data_path):
+        for dir_2 in os.listdir(os.path.join(data_path,dir_1)):
+            dic={}
+            dic['shapenet_id'] = dir_1
+                
+            #save
+            sub_output_dir = os.path.join(output_dir,str(i))
+            np.save(os.path.join(sub_output_dir,'shapenet_id'),dic)
+            
+            i += 1
+            
+                      
 if __name__ == '__main__':
     prepare_data()
 

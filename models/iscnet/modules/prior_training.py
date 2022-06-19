@@ -193,7 +193,7 @@ class ShapePrior(nn.Module):
 
         for i, data in enumerate(loader):
             point_cloud = data['point_cloud'].to(self.device)
-            cat = data['ShapeNetID']
+            cat = data['shapenet_id']
             with torch.no_grad():
                 shape_embs=self.encoder(point_cloud)
             for j in range(shape_embs.shape[0]):
