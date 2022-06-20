@@ -1,7 +1,8 @@
 method: ISCNet
 resume: False
 finetune: True
-weight: ['out/pretrained_models/pretrained_weight.pth']
+weight: ['out/detection/pretrained_weight.pth']
+weight_prior: ['out/prior/2022-06-17Tfps_qp40000_continued/weights_epoch_98']
 seed: 10
 device:
   use_gpu: True
@@ -10,7 +11,8 @@ device:
 data:
   dataset: scannet
   split: datasets/splits/fullscan
-  num_point: 80000
+  num_points: 2048
+  num_query_points: 2048
   num_target: 256
   vote_factor: 1
   cluster_sampling: seed_fps
@@ -24,10 +26,10 @@ data:
   hidden_dim: 512
   c_dim: 512
   z_dim: 32
-  threshold: 0.5
+  threshold: 0 # changed for sdf values
   completion_limit_in_train: 10
   use_cls_for_completion: False
-  skip_propagate: True
+  skip_propagate: False
 model:
   backbone:
     method: Pointnet2Backbone
@@ -41,10 +43,13 @@ model:
   skip_propagation:
     method: SkipPropagation
     loss: Null
-  completion:
-    method: ONet
-    loss: ONet_Loss
-    weight: 0.005
+  group_and_align:
+    method: GroupAndAlign
+    loss: Null
+  shape_prior:
+    method: ShapePrior
+    loss: ShapePriorLoss
+    ClampingDistance: 0.1
 test:
   phase: 'completion'
   batch_size: 1
