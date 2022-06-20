@@ -413,8 +413,14 @@ class BoxNetDetectionLoss(BaseLoss):
                 'size_reg_loss': size_reg_loss.item(),
                 'obj_acc': obj_acc.item()}
 
-@LOSSES.register_module
+
 class ShapePriorLoss(BaseLoss):
     def __call__(self, pred, gt):
         total_loss=F.mse_loss(pred,torch.sign(gt))
+        return {'total_loss': total_loss}
+
+@LOSSES.register_module
+class ShapePriorCompletionLoss(BaseLoss):
+    def __call__(self, pred_feat, shape_emb_prior_plus,shape_emb_prior_minus):
+        total_loss=max(F.mse_loss(pred_feat,shape_emb_prior_plus)-F.mse_loss(pred_feat,shape_emb_prior_minus)+0.5,0)
         return {'total_loss': total_loss}
