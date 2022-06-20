@@ -23,6 +23,7 @@ class GroupAndAlign(nn.Module):
                 use_xyz=False,
                 normalize_xyz=True
             )
+        self.input_feature_dim = int(cfg.config['data']['use_color_completion']) * 3 + int(not cfg.config['data']['no_height']) * 1
 
 
     def _break_up_pc(self, pc):
