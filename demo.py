@@ -26,7 +26,7 @@ def load_demo_data(cfg, device):
     use_color = cfg.config['data']['use_color_detection'] or cfg.config['data']['use_color_completion']
     MEAN_COLOR_RGB = np.array([121.87661, 109.73591, 95.61673])
     use_height = not cfg.config['data']['no_height']
-    num_points = cfg.config['data']['num_point']
+    num_points = cfg.config['data']['num_points']
 
     if not use_color:
         point_cloud = point_cloud[:, 0:3]  # do not use color for now

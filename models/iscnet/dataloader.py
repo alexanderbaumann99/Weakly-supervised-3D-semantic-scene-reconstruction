@@ -23,7 +23,7 @@ MEAN_COLOR_RGB = np.array([121.87661, 109.73591, 95.61673])
 class ISCNet_ScanNet(ScanNet):
     def __init__(self, cfg, mode):
         super(ISCNet_ScanNet, self).__init__(cfg, mode)
-        self.num_points = cfg.config['data']['num_point']
+        self.num_points = cfg.config['data']['num_points']
         self.use_color = cfg.config['data']['use_color_detection'] or cfg.config['data']['use_color_completion']
         self.use_height = not cfg.config['data']['no_height']
         self.augment = mode == 'train'

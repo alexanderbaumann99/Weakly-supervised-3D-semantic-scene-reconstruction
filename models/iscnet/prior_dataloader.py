@@ -1,7 +1,7 @@
 # Prior Dataloader of ISCNet.
 # Cite: VoteNet
 
-from cv2 import split
+
 import torch.utils.data
 from torch.utils.data import DataLoader
 import numpy as np
