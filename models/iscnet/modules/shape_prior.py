@@ -1,8 +1,11 @@
+from models.iscnet.modules.generator_prior import Generator3DPrior
 from models.iscnet.modules.layers import ResnetPointnet,CBatchNorm1d
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from models.registers import MODULES
+import torch.distributions as dist
+from external.common import make_3d_grid
 
 
 class DecoderBlock(nn.Module):
@@ -42,6 +45,7 @@ class ShapePrior(nn.Module):
         '''Optimizer parameters used in training'''
         self.optim_spec = optim_spec
         self.cfg = cfg
+        self.use_cls_for_completion = cfg.config['data']['use_cls_for_completion']
         '''Definition of the modules'''
         leaky=False
         self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim'],
@@ -71,6 +75,18 @@ class ShapePrior(nn.Module):
         self.act=nn.ReLU()
         if leaky:
             self.act=nn.LeakyReLU()
+
+        '''Mount mesh generator'''
+        if 'generation' in cfg.config and cfg.config['generation']['generate_mesh']:
+            from models.iscnet.modules.generator import Generator3D
+            self.generator = Generator3DPrior(self,
+                                         threshold=cfg.config['data']['threshold'],
+                                         resolution0=cfg.config['generation']['resolution_0'],
+                                         upsampling_steps=cfg.config['generation']['upsampling_steps'],
+                                         sample=cfg.config['generation']['use_sampling'],
+                                         refinement_step=cfg.config['generation']['refinement_step'],
+                                         simplify_nfaces=cfg.config['generation']['simplify_nfaces'],
+                                         preprocessor=None)
 
     
     def generate_latent(self,pc):
@@ -104,3 +120,43 @@ class ShapePrior(nn.Module):
         out=out.transpose(1,2)
 
         return out
+
+
+    def compute_loss(self, point_clouds, query_points, query_points_occ,
+                     cls_codes_for_completion, export_shape=False):
+        '''
+        Compute loss for OccNet
+        :param input_features_for_completion (N_B x D): Number of bounding boxes x Dimension of proposal feature.
+        :param input_points_for_completion (N_B, N_P, 3): Number of bounding boxes x Number of Points x 3.
+        :param input_points_occ_for_completion (N_B, N_P): Corresponding occupancy values.
+        :param cls_codes_for_completion (N_B, N_C): One-hot category codes.
+        :param export_shape (bool): whether to export a shape voxel example.
+        :return:
+        '''
+        device = query_points.device
+        batch_size = query_points.size(0)
+        if self.use_cls_for_completion:
+            cls_codes_for_completion = cls_codes_for_completion.to(device).float()
+            input_features_for_completion = torch.cat([query_points, cls_codes_for_completion], dim=-1)
+
+        kwargs = {}
+        '''Infer latent code z.'''
+
+        self.generate_latent(point_clouds)
+        preds = self.forward(query_points)
+        loss = F.mse_loss(preds,torch.sign(query_points_occ),reduction='mean')
+
+        if export_shape:
+            shape = (16, 16, 16)
+            qp = make_3d_grid([-0.5 + 1/32] * 3, [0.5 - 1/32] * 3, shape).to(device)
+            qp = qp.expand(batch_size, * qp.size())
+            self.generate_latent(point_clouds)
+            p_r = self.forward(qp)
+            occ_hat = p_r.probs.view(batch_size, *shape)
+            voxels_out = (occ_hat >= self.threshold)
+        else:
+            voxels_out = None
+
+        return loss, voxels_out
+
+
