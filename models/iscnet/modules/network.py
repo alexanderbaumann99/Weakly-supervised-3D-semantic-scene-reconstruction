@@ -28,7 +28,7 @@ class ISCNet(BaseNetwork):
         if cfg.config[cfg.config['mode']]['phase'] in ['detection']:
             phase_names += ['backbone', 'voting', 'detection']
         if cfg.config[cfg.config['mode']]['phase'] in ['completion']:
-            phase_names += ['backbone', 'voting', 'detection', 'group_and_align', 'shape_prior']
+            phase_names += ['backbone', 'voting', 'detection', 'group_and_align', 'shape_prior','completion']
             #if cfg.config['data']['skip_propagate']:
             #    phase_names += ['skip_propagation']
 
@@ -513,12 +513,12 @@ class ISCNet(BaseNetwork):
         '''
         end_points, completion_loss = est_data[:2]
         total_loss = self.detection_loss(end_points, gt_data, self.cfg.dataset_config)
-        '''
+
         # --------- INSTANCE COMPLETION ---------
         if self.cfg.config[self.cfg.config['mode']]['phase'] == 'completion':
-            completion_loss = self.completion_loss(completion_loss)
-            total_loss = {**total_loss, 'completion_loss': completion_loss['completion_loss'],
-                          'mask_loss':completion_loss['mask_loss']}
-            total_loss['total'] += completion_loss['total_loss']
-        '''
+            reconstruction_loss = self.completion_loss(completion_loss)
+            total_loss = {**total_loss, 'shape_retrieval_loss': reconstruction_loss['shape_retrieval_loss'],
+                          'mask_loss':reconstruction_loss['mask_loss']}
+            total_loss['total'] += reconstruction_loss['total_loss']
+
         return total_loss

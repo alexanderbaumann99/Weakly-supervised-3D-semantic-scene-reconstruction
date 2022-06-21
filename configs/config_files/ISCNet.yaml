@@ -46,8 +46,8 @@ model:
     method: GroupAndAlign
     loss: Null
   completion:
-    method: ONet
-    loss: ONet_Loss
+    method: ShapePrior
+    loss: ReconstructionLoss
     weight: 0.005
   shape_prior:
     method: ShapePrior

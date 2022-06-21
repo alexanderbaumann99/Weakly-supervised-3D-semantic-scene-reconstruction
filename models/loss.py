@@ -297,13 +297,13 @@ class PCN_Loss(BaseLoss):
         return self.weight * errG, CD_LOSS.item()
 
 @LOSSES.register_module
-class ONet_Loss(BaseLoss):
+class ReconstructionLoss(BaseLoss):
     def __call__(self, value):
-        completion_loss = torch.mean(value[:,0])
+        shape_retrieval_loss = torch.mean(value[:,0])
         mask_loss = torch.mean(value[:,1])
-        total_loss = self.weight * (completion_loss + 100*mask_loss)
+        total_loss = self.weight * (shape_retrieval_loss + 100*mask_loss)
         return {'total_loss': total_loss,
-                'completion_loss': completion_loss.item(),
+                'shape_retrieval_loss': shape_retrieval_loss.item(),
                 'mask_loss': mask_loss.item()}
 
 def compute_objectness_loss_boxnet(est_data, gt_data):
@@ -447,7 +447,7 @@ class ShapeRetrievalLoss(BaseLoss):
         shape_retrieval_loss = max(torch.nn.functional.mse_loss(object_input_features,pos_shape_emb)-\
             torch.nn.functional.mse_loss(object_input_features,neg_shape_emb)+0.5,0)
     
-        return {'total_loss': shape_retrieval_loss }
+        return shape_retrieval_loss
 
 
 
