@@ -56,6 +56,7 @@ class ISCNet(BaseNetwork):
 
         '''freeze submodules or not'''
         self.freeze_modules(cfg)
+        #self.shape_embeddings = torch.load(path to embeddings)
 
     def generate(self, data):
         '''
@@ -404,28 +405,21 @@ class ISCNet(BaseNetwork):
 
                 object_input_features, mask_loss = self.skip_propagation(pred_centers, heading_angles, proposal_features, inputs['point_clouds'], data['point_instance_labels'], proposal_instance_labels)
 
-            # Prepare input-output pairs for shape completion
-            # proposal_to_gt_box_w_cls_list (B x N_Limit x 4): (bool_mask, proposal_id, gt_box_id, cls_id)
-            input_points_for_completion, \
-            input_points_occ_for_completion, \
-            cls_codes_for_completion = self.prepare_data(data, BATCH_PROPOSAL_IDs)
-
-            export_shape = data.get('export_shape', export_shape) # if output shape voxels.
-            batch_size, feat_dim, N_proposals = object_input_features.size()
-            object_input_features = object_input_features.transpose(1, 2).contiguous().view(
-                batch_size * N_proposals, feat_dim)
-            completion_loss, shape_example = self.completion.compute_loss(object_input_features,
-                                                                          input_points_for_completion,
-                                                                          input_points_occ_for_completion,
-                                                                          cls_codes_for_completion, export_shape)
+            gather_ids = BATCH_PROPOSAL_IDs[...,0].unsqueeze(-1).repeat(1,1,8).long().to(device)
+            sem_cls_scores = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
+            sem_cls_labels = torch.argmax(sem_cls_scores,dim=2).long()
+            
+            #self.shape_embeddings has size num_cls x feat_dim = 8 x feat_dim
+            object_input_features = object_input_features.transpose(1,2)
+            shape_retrieval_loss = self.shape_prior_loss(object_input_features,self.shape_embeddings,sem_cls_labels,device)
+            
         else:
             BATCH_PROPOSAL_IDs = None
-            completion_loss = torch.tensor(0.).to(features.device)
+            shape_retrieval_loss = torch.tensor(0.).to(features.device)
             mask_loss = torch.tensor(0.).to(features.device)
-            shape_example = None
 
-        completion_loss = torch.cat([completion_loss.unsqueeze(0), mask_loss.unsqueeze(0)], dim = 0)
-        return end_points, completion_loss.unsqueeze(0), shape_example, BATCH_PROPOSAL_IDs
+        completion_loss = torch.cat([shape_retrieval_loss.unsqueeze(0), mask_loss.unsqueeze(0)], dim = 0)
+        return end_points, completion_loss.unsqueeze(0), BATCH_PROPOSAL_IDs
 
     def get_proposal_id(self, end_points, data, mode='random', batch_sample_ids=None, DUMP_CONF_THRESH=-1.):
         '''

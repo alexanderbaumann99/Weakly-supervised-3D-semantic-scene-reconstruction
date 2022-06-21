@@ -51,7 +51,7 @@ model:
     weight: 0.005
   shape_prior:
     method: ShapePrior
-    loss: ShapePriorLoss
+    loss: ShapeRetrievalLoss
     ClampingDistance: 0.1
 optimizer:
   method: Adam

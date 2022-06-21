@@ -420,7 +420,34 @@ class ShapePriorLoss(BaseLoss):
         return {'total_loss': total_loss}
 
 @LOSSES.register_module
-class ShapePriorCompletionLoss(BaseLoss):
-    def __call__(self, pred_feat, shape_emb_prior_plus,shape_emb_prior_minus):
-        total_loss=max(F.mse_loss(pred_feat,shape_emb_prior_plus)-F.mse_loss(pred_feat,shape_emb_prior_minus)+0.5,0)
-        return {'total_loss': total_loss}
+class ShapeRetrievalLoss(BaseLoss):
+    ''' Loss function for shape retrieval
+    Args:
+        object_input_features: features of each object, size B x 10 x feat_dim
+        shape_embeddings:      shape embeddings from pretrained Shape Prior, size: 8 x feat_dim
+        sem_cls_labels:        semnatic class labels of each object, computed in the detection, size: B x 10
+        device
+    '''
+
+    def __call__(self, object_input_features, shape_embeddings,sem_cls_labels,device):
+        
+        pos_shape_emb = torch.empty((sem_cls_labels.shape[0],sem_cls_labels.shape[1],shape_embeddings.shape[1])).to(device)
+        for batch_id in range(sem_cls_labels.shape[0]):
+            for object_id in range(sem_cls_labels.shape[1]):
+                pos_shape_emb[batch_id,object_id,:] = shape_embeddings[sem_cls_labels[batch_id,object_id],:]
+
+        neg_shape_emb = torch.empty((sem_cls_labels.shape[0],sem_cls_labels.shape[1],shape_embeddings.shape[1])).to(device)
+        idx = np.arange(8)
+        for batch_id in range(sem_cls_labels.shape[0]):
+            for object_id in range(sem_cls_labels.shape[1]):
+                idx_neg = np.delete(idx,sem_cls_labels[batch_id,object_id].item())
+                idx_neg = np.random.choice(idx_neg)
+                neg_shape_emb[batch_id,object_id] = shape_embeddings[idx_neg,:]
+        
+        shape_retrieval_loss = max(torch.nn.functional.mse_loss(object_input_features,pos_shape_emb)-\
+            torch.nn.functional.mse_loss(object_input_features,neg_shape_emb)+0.5,0)
+    
+        return {'total_loss': shape_retrieval_loss }
+
+
+
