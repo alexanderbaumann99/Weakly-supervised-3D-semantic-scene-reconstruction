@@ -51,7 +51,7 @@ class Generator3DPrior(object):
         self.preprocessor = preprocessor
         self.use_cls_for_completion = use_cls_for_completion
 
-    def generate_mesh(self, point_clouds, cls_codes, return_stats=True):
+    def generate_mesh(self, point_clouds, return_stats=True): #cls_codes, 
         ''' Generates the output mesh.
 
         Args:
@@ -88,11 +88,15 @@ class Generator3DPrior(object):
         box_size = 1 + self.padding
 
         # Shortcut
+        self.model.eval()
+        z = self.model.encoder(point_cloud)
+        
         if self.upsampling_steps == 0:
             nx = self.resolution0
             pointsf = box_size * make_3d_grid(
                 (-0.5,)*3, (0.5,)*3, (nx,)*3
-            )
+            ).unsqueeze(0).cuda()
+            print(pointsf.size())
             values = self.eval_points(point_cloud, pointsf).cpu().numpy()
             value_grid = values.reshape(nx, nx, nx)
         else:
