@@ -151,22 +151,20 @@ class ISCNet(BaseNetwork):
 
                 # gather instance labels
                 proposal_instance_labels = torch.gather(data['object_instance_labels'], 1, BATCH_PROPOSAL_IDs[..., 1])
-                object_input_features, mask_loss = self.group_and_align(pred_centers, heading_angles,
+                point_clouds, features = self.group_and_align(pred_centers, heading_angles,
                                                                          proposal_features, inputs['point_clouds'],
                                                                          data['point_instance_labels'],
                                                                          proposal_instance_labels)
-
-                point_clouds, features = self.group_and_align(inputs['point_clouds'])
-                print(point_clouds.shape)
 
 
                 # --------- SHAPE COMPLETION --------
                 # Prepare input-output pairs for shape completion
                 # proposal_to_gt_box_w_cls_list (B x N_Limit x 4): (bool_mask, proposal_id, gt_box_id, cls_id)
+                '''
                 input_points_for_completion, \
                 input_points_occ_for_completion, \
                 _ = self.prepare_data(data, BATCH_PROPOSAL_IDs)
-
+                
                 batch_size, feat_dim, N_proposals = object_input_features.size()
                 #object_input_features = object_input_features.transpose(1, 2).contiguous().view(batch_size * N_proposals, feat_dim)
 
@@ -174,7 +172,6 @@ class ISCNet(BaseNetwork):
                 cls_codes_for_completion = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
                 cls_codes_for_completion = (cls_codes_for_completion >= torch.max(cls_codes_for_completion, dim=2, keepdim=True)[0]).float()
                 cls_codes_for_completion = cls_codes_for_completion.view(batch_size*N_proposals, -1)
-
 
                 completion_loss, shape_example = self.shape_prior.compute_loss(point_clouds,
                                                                               input_points_for_completion,
@@ -187,9 +184,11 @@ class ISCNet(BaseNetwork):
                     iou_stats = {'cls':cls_labels, 'iou':ious}
                 else:
                     iou_stats = None
+                '''
 
                 if self.cfg.config['generation']['generate_mesh']:
-                    meshes = self.shape_prior.generator.generate_mesh(point_clouds, cls_codes_for_completion)
+                    print(point_clouds.size())
+                    meshes = self.shape_prior.generator.generate_mesh(point_clouds)
                 else:
                     meshes = None
             else:
@@ -206,17 +205,22 @@ class ISCNet(BaseNetwork):
         pred_mesh_dict = None
         if self.cfg.config[mode]['phase'] == 'completion' and self.cfg.config['generation']['generate_mesh']:
             pred_mesh_dict = {'meshes': meshes, 'proposal_ids': BATCH_PROPOSAL_IDs}
+            print(pred_mesh_dict)
             parsed_predictions = self.fit_mesh_to_scan(pred_mesh_dict, parsed_predictions, eval_dict, inputs['point_clouds'], dump_threshold)
+
 
         pred_mesh_dict = pred_mesh_dict if self.cfg.config[mode]['evaluate_mesh_mAP'] else None
         eval_dict = assembly_pred_map_cls(eval_dict, parsed_predictions, self.cfg.eval_config, mesh_outputs=pred_mesh_dict, voxel_size=voxel_size)
 
-        gt_mesh_dict = {'shapenet_catids':data['shapenet_catids'],
-                        'shapenet_ids':data['shapenet_ids']} if evaluate_mesh_mAP else None
-        eval_dict['batch_gt_map_cls'] = assembly_gt_map_cls(parsed_gts, mesh_outputs=gt_mesh_dict, voxel_size=voxel_size)
+        
+        #gt_mesh_dict = {'shapenet_catids':data['shapenet_catids'],
+        #                'shapenet_ids':data['shapenet_ids']} if evaluate_mesh_mAP else None
+        #eval_dict['batch_gt_map_cls'] = assembly_gt_map_cls(parsed_gts, mesh_outputs=gt_mesh_dict, voxel_size=voxel_size)
 
-        completion_loss = torch.cat([completion_loss.unsqueeze(0), mask_loss.unsqueeze(0)], dim=0)
-        return end_points, completion_loss.unsqueeze(0), shape_example, BATCH_PROPOSAL_IDs, eval_dict, meshes, iou_stats, parsed_predictions
+        completion_loss = torch.tensor(0) #torch.cat([completion_loss.unsqueeze(0), mask_loss.unsqueeze(0)], dim=0).unsqueeze(0)
+        shape_example = None
+        iou_stats = None
+        return end_points, completion_loss, shape_example, BATCH_PROPOSAL_IDs, eval_dict, meshes, iou_stats, parsed_predictions
 
     def fit_mesh_to_scan(self, pred_mesh_dict, parsed_predictions, eval_dict, input_scan, dump_threshold):
         '''fit meshes to input scan'''
@@ -515,12 +519,12 @@ class ISCNet(BaseNetwork):
         '''
         end_points, completion_loss = est_data[:2]
         total_loss = self.detection_loss(end_points, gt_data, self.cfg.dataset_config)
-
+        '''
         # --------- INSTANCE COMPLETION ---------
         if self.cfg.config[self.cfg.config['mode']]['phase'] == 'completion':
             completion_loss = self.completion_loss(completion_loss)
             total_loss = {**total_loss, 'completion_loss': completion_loss['completion_loss'],
                           'mask_loss':completion_loss['mask_loss']}
             total_loss['total'] += completion_loss['total_loss']
-
+        '''
         return total_loss
