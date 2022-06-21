@@ -49,7 +49,10 @@ class GroupAndAlign(nn.Module):
 
         features = torch.cat([features, point_instance_labels.unsqueeze(1)], dim=1)
         xyz, features = self.stn(xyz, features, box_xyz, box_orientations)
-
+        # from dimension B x dim x N_proposals x N_points
+        # to N_proposals x B x N_points x dim
+        xyz = xyz.permute([2, 0, 3, 1]).contiguous()
+        
         return xyz, features
 
         '''
