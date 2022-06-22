@@ -29,6 +29,7 @@ data:
   completion_limit_in_train: 10
   use_cls_for_completion: False
   skip_propagate: True
+  embedding_path: datasets/shape_embeddings.pt
 model:
   backbone:
     method: Pointnet2Backbone
