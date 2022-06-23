@@ -53,7 +53,7 @@ class ShapeNetDataset(Dataset):
         points = points[:self.num_points]
         query_points = query_points[np.random.choice(query_points.shape[0], self.num_query_points, replace=False)]
 
-        id_dic = np.load(os.path.join(*[self.data_path, str(idx), 'shapenet_id.npy']),allow_pickle=True)
+        id_dic = np.load(os.path.join(*[self.data_path, str(idx), 'dict_ids.npy']),allow_pickle=True)
 
         ret_dict = {}
         ret_dict['point_cloud'] = points.astype(np.float32)

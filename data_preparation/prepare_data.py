@@ -5,6 +5,8 @@ from pyntcloud import PyntCloud
 import pandas as pd
 import numpy as np
 
+ShapeNet2Labels = {'04379243':'0','03001627':'1','02871439':'2','04256520':'3','02747177':'4','02933112':'5','03211117':'6','02808440':'7' }
+
 def prepare_data():#data_path):
     data_path = '../../data/watertight_scaled_simplified'
     output_dir = '../datasets/ShapeNetv2_data_simplified'
@@ -43,10 +45,11 @@ def get_id():
         for dir_2 in os.listdir(os.path.join(data_path,dir_1)):
             dic={}
             dic['shapenet_id'] = dir_1
+            dic['sem_cls_id']  = ShapeNet2Labels[dir_1] 
                 
             #save
             sub_output_dir = os.path.join(output_dir,str(i))
-            np.save(os.path.join(sub_output_dir,'shapenet_id'),dic)
+            np.save(os.path.join(sub_output_dir,'dict_ids'),dic)
             
             i += 1
             
