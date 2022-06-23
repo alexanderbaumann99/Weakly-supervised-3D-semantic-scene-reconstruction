@@ -48,7 +48,7 @@ def check_voxels(voxels):
 
 def sample_uniform_points(amount):
     '''changed to box instead of sphere'''
-    uniform_points = np.random.uniform(-1, 1, size=(amount, 3))
+    uniform_points = np.random.uniform(-0.5, 0.5, size=(amount, 3))
     return uniform_points
 
 
