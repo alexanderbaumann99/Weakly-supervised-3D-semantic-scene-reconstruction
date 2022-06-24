@@ -48,28 +48,28 @@ class ShapePrior(nn.Module):
         self.use_cls_for_completion = cfg.config['data']['use_cls_for_completion']
         '''Definition of the modules'''
         leaky=False
-        self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim'],
+        self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim_prior'],
                                       dim=3,
                                       hidden_dim=cfg.config['data']['hidden_dim'])
 
-        hidden_dim=cfg.config['data']['c_dim']
+        hidden_dim=cfg.config['data']['c_dim_prior']
         self.fc1=nn.Conv1d(3,hidden_dim,1)
-        self.dblock1=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
+        self.dblock1=DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
                                   hidden_dim=hidden_dim,
                                   leaky=leaky)
-        self.dblock2=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
+        self.dblock2=DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
                                   hidden_dim=hidden_dim,
                                   leaky=leaky)
-        self.dblock3=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
+        self.dblock3=DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
                                   hidden_dim=hidden_dim,
                                   leaky=leaky)                                                    
-        self.dblock4=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
+        self.dblock4=DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
                                   hidden_dim=hidden_dim,
                                   leaky=leaky)
-        self.dblock5=DecoderBlock(c_dim=cfg.config['data']['c_dim'],
+        self.dblock5=DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
                                   hidden_dim=hidden_dim,
                                   leaky=leaky)                                                     
-        self.CBatchNorm=CBatchNorm1d(c_dim=cfg.config['data']['c_dim'],
+        self.CBatchNorm=CBatchNorm1d(c_dim=cfg.config['data']['c_dim_prior'],
                                      f_dim=hidden_dim)
         self.fc2=nn.Conv1d(hidden_dim,1,1)
         self.act=nn.ReLU()
@@ -78,7 +78,7 @@ class ShapePrior(nn.Module):
 
         '''Mount mesh generator'''
         if 'generation' in cfg.config and cfg.config['generation']['generate_mesh']:
-            from models.iscnet.modules.generator import Generator3D
+            from models.iscnet.modules.generator_prior import Generator3DPrior
             self.generator = Generator3DPrior(self,
                                          threshold=cfg.config['data']['threshold'],
                                          resolution0=cfg.config['generation']['resolution_0'],

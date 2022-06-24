@@ -19,7 +19,7 @@ class GroupAndAlign(nn.Module):
         '''Modules'''
         self.stn = STN_Group(
                 radius=1.,
-                nsample=cfg.config['data']['num_points'],
+                nsample=1024,
                 use_xyz=False,
                 normalize_xyz=True
             )
@@ -44,9 +44,7 @@ class GroupAndAlign(nn.Module):
         :param input_point_cloud: (Batch size x Num of pointcloud points x feature dim) box features.
         :return:
         '''
-
         xyz, features = self._break_up_pc(input_point_cloud)
-
         features = torch.cat([features, point_instance_labels.unsqueeze(1)], dim=1)
         xyz, features = self.stn(xyz, features, box_xyz, box_orientations)
         # from dimension B x dim x N_proposals x N_points
