@@ -10,7 +10,9 @@ device:
 data:
   dataset: scannet
   split: datasets/splits/fullscan
-  num_point: 80000
+  num_points: 80000
+  num_box_points: 2048
+  num_query_points: 2048
   num_target: 256
   vote_factor: 1
   cluster_sampling: vote_fps

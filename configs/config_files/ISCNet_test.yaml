@@ -12,6 +12,8 @@ data:
   dataset: scannet
   split: datasets/splits/fullscan
   num_points: 80000
+  num_box_points: 2048
+  num_query_points: 2048
   num_target: 256
   vote_factor: 1
   cluster_sampling: seed_fps
@@ -29,7 +31,7 @@ data:
   threshold: 0.5
   completion_limit_in_train: 10
   use_cls_for_completion: False
-  skip_propagate: True
+  skip_propagate: False
 model:
   backbone:
     method: Pointnet2Backbone

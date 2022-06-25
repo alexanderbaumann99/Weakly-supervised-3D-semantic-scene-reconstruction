@@ -15,7 +15,7 @@ import pickle
 class ShapeNetDataset(Dataset):
     def __init__(self, cfg, mode):
         #super(ShapeNetDataset, self).__init__(cfg, mode)   #define later for splitting
-        self.num_points = cfg.config['data']['num_points']
+        self.num_points = cfg.config['data']['num_box_points']
         self.num_query_points = cfg.config['data']['num_query_points']
         self.data_path = cfg.config['data']['shapenet_path']
 
@@ -50,7 +50,7 @@ class ShapeNetDataset(Dataset):
 
         #sample random pc points and query points
         #points = points[np.random.choice(points.shape[0], self.num_points, replace=False)]
-        points = points[:self.num_points]
+        points = points[:self.num_box_points]
         query_points = query_points[np.random.choice(query_points.shape[0], self.num_query_points, replace=False)]
 
         id_dic = np.load(os.path.join(*[self.data_path, str(idx), 'dict_ids.npy']),allow_pickle=True)

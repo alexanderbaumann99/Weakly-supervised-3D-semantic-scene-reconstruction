@@ -10,33 +10,35 @@ from external.pointnet2_ops_lib.pointnet2_ops.pointnet2_modules import STN_Group
 from models.iscnet.modules.layers import ResnetPointnet
 from models.iscnet.modules.pointseg import PointSeg, get_loss
 
+
 @MODULES.register_module
 class GroupAndAlign(nn.Module):
     ''' Back-Propagte box proposal features to input points
     '''
+
     def __init__(self, cfg, optim_spec=None):
         super(GroupAndAlign, self).__init__()
         '''Modules'''
         self.stn = STN_Group(
-                radius=1.,
-                nsample=1024,
-                use_xyz=False,
-                normalize_xyz=True
-            )
-        self.input_feature_dim = int(cfg.config['data']['use_color_completion']) * 3 + int(not cfg.config['data']['no_height']) * 1
-
+            radius=1.,
+            nsample=cfg.config['data']['num_box_points'],
+            use_xyz=False,
+            normalize_xyz=True
+        )
+        self.input_feature_dim = int(cfg.config['data']['use_color_completion']) * 3 + int(
+            not cfg.config['data']['no_height']) * 1
 
     def _break_up_pc(self, pc):
         xyz = pc[..., 0:3].contiguous()
         features = (
-            pc[..., 3:3+self.input_feature_dim].transpose(1, 2).contiguous()
+            pc[..., 3:3 + self.input_feature_dim].transpose(1, 2).contiguous()
             if pc.size(-1) > 3 else None
         )
 
         return xyz, features
 
-
-    def forward(self, box_xyz, box_orientations, box_feature, input_point_cloud, point_instance_labels, proposal_instance_labels):
+    def forward(self, box_xyz, box_orientations, box_feature, input_point_cloud, point_instance_labels,
+                proposal_instance_labels):
         '''
         Extract point features from input pointcloud, and propagate to box xyz.
         :param box_xyz: (Batch size x N points x 3) point coordinates
@@ -50,41 +52,7 @@ class GroupAndAlign(nn.Module):
         # from dimension B x dim x N_proposals x N_points
         # to N_proposals x B x N_points x dim
         xyz = xyz.permute([2, 0, 3, 1]).contiguous()
-        
+
         return xyz, features
 
-        '''
-        batch_size, _, N_proposals, N_points = features.size()
 
-        # get point mask
-        instance_labels = features[:, 1]
-        instance_point_masks = instance_labels==proposal_instance_labels.unsqueeze(-1).repeat(1,1,N_points)
-        instance_point_masks = instance_point_masks.view(batch_size * N_proposals * N_points)
-
-        features = features[:, 0].unsqueeze(1)
-        input_features = torch.cat([xyz, features], dim=1)
-
-        input_features = input_features.permute([0, 2, 3, 1]).contiguous().view(batch_size * N_proposals, N_points, -1)
-
-        
-        # use PointNet to predict masks
-        seg_pred, trans_feat = self.point_seg(input_features.transpose(1,2).contiguous())
-        seg_pred = seg_pred.contiguous().view(batch_size * N_proposals * N_points, 2)
-        point_mask_loss = self.mask_loss_func(seg_pred, instance_point_masks.long(), trans_feat, weight=None)
-
-        box_feature = box_feature.transpose(1, 2).contiguous().view(batch_size * N_proposals, -1).unsqueeze(1)
-        box_feature = box_feature.repeat(1, N_points, 1)
-        input_features = torch.cat([input_features, box_feature], dim=2)
-
-        # get segmented masks
-        point_seg_mask = torch.argmax(seg_pred, dim=1).view(batch_size*N_proposals, N_points)
-        point_seg_mask = point_seg_mask.unsqueeze(-1).expand(batch_size * N_proposals, N_points, input_features.shape[-1])
-        input_features = input_features * point_seg_mask.float()
-
-        input_features = self.encoder(input_features)
-        input_features = input_features.view(batch_size, N_proposals, -1).transpose(1, 2)
-
-        # input_features = self.self_attn(input_features)
-
-        return input_features, point_mask_loss
-        '''
