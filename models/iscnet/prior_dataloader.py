@@ -50,7 +50,7 @@ class ShapeNetDataset(Dataset):
 
         #sample random pc points and query points
         #points = points[np.random.choice(points.shape[0], self.num_points, replace=False)]
-        points = points[:self.num_box_points]
+        points = points[:self.num_points]
         query_points = query_points[np.random.choice(query_points.shape[0], self.num_query_points, replace=False)]
 
         id_dic = np.load(os.path.join(*[self.data_path, str(idx), 'dict_ids.npy']),allow_pickle=True)
@@ -59,7 +59,8 @@ class ShapeNetDataset(Dataset):
         ret_dict['point_cloud'] = points.astype(np.float32)
         ret_dict['query_points'] = query_points.astype(np.float32)[:, 0:3]
         ret_dict['sdf'] = query_points.astype(np.float32)[:, 3]
-        ret_dict['shapenet_id'] = id_dic['shapenet_id']
+        ret_dict['shapenet_id'] = id_dic.item()['shapenet_id']
+        ret_dict['sem_cls_id'] = id_dic.item()['sem_cls_id']
         return ret_dict
 
 

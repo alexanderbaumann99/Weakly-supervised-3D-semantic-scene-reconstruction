@@ -96,18 +96,17 @@ class ShapePrior(nn.Module):
 
         running_loss=0
         for i, data in enumerate(loader):
-            """ point_cloud = data['point_cloud'].to(self.device)
+            point_cloud = data['point_cloud'].to(self.device)
             query_points = data['query_points'].to(self.device)
-            gt_sdf = data['sdf'].to(self.device) """
+            gt_sdf = data['sdf'].to(self.device) 
+            '''
             point_cloud = data['point_cloud'].to(self.device)
             query_points_surface = data['query_points_surface'].to(self.device)
             query_points_sphere = data['query_points_sphere'].to(self.device)
             sdf_surface = data['sdf_surface'].to(self.device)
             sdf_sphere = data['sdf_sphere'].to(self.device)
             query_points,gt_sdf = self.get_batch(query_points_surface,query_points_sphere,sdf_surface,sdf_sphere,1024,1024)
-         
-            query_points = query_points
-            gt_sdf = gt_sdf
+            '''
 
             optim.zero_grad()
             self.generate_latent(point_cloud)
@@ -136,18 +135,17 @@ class ShapePrior(nn.Module):
         '''
         running_loss=0
         for i, data in enumerate(loader):
-            """ point_cloud = data['point_cloud'].to(self.device)
+            point_cloud = data['point_cloud'].to(self.device)
             query_points = data['query_points'].to(self.device)
-            gt_sdf = data['sdf'].to(self.device) """
+            gt_sdf = data['sdf'].to(self.device)
+            '''
             point_cloud = data['point_cloud'].to(self.device)
             query_points_surface = data['query_points_surface'].to(self.device)
             query_points_sphere = data['query_points_sphere'].to(self.device)
             sdf_surface = data['sdf_surface'].to(self.device)
             sdf_sphere = data['sdf_sphere'].to(self.device)
             query_points,gt_sdf = self.get_batch(query_points_surface,query_points_sphere,sdf_surface,sdf_sphere,1024,1024)
-
-            query_points = query_points
-            gt_sdf = gt_sdf
+            '''
             
             with torch.no_grad():
                 self.generate_latent(point_cloud)
@@ -192,16 +190,19 @@ class ShapePrior(nn.Module):
         n_obj_per_cat = torch.zeros((num_cats,)).to(self.device)
 
         for i, data in enumerate(loader):
+            print(i)
             point_cloud = data['point_cloud'].to(self.device)
             cat = data['sem_cls_id']
             with torch.no_grad():
                 shape_embs=self.encoder(point_cloud)
             for j in range(shape_embs.shape[0]):
-                emb_per_cat[cat[j],:]+=shape_embs[j,:]
-                n_obj_per_cat[cat[j],:]+=1
+                emb_per_cat[int(cat[j]),:]+=shape_embs[j,:]
+                n_obj_per_cat[int(cat[j])]+=1
+            break
 
-        emb_per_cat/=n_obj_per_cat
-        torch.save(emb_per_cat,self.cfg.config['model']['data']['embedding_path'])
+        for j in range(n_obj_per_cat.shape[0]): 
+            emb_per_cat[j] /= n_obj_per_cat[j]
+        torch.save(emb_per_cat,self.cfg.config['data']['embedding_path'])
 
     
 

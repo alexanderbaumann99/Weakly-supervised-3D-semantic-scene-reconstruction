@@ -1,8 +1,8 @@
 method: ISCNet
-resume: False
+resume: True
 finetune: True
 weight: ['out/detection/pretrained_weight.pth']
-weight_prior: 'out/prior/weights_epoch_98'
+weight_prior: 'out/prior/2022-06-17Tfps_qp40000_continued/weights_epoch_98'
 seed: 10
 device:
   use_gpu: True
@@ -21,7 +21,7 @@ data:
   no_height: False
   use_color_detection: False
   use_color_completion: False
-  shapenet_path: datasets/ShapeNetv2_data_fps
+  shapenet_path: datasets/ShapeNetv2_data_fps_id
   points_unpackbits: True
   points_subsample: [1024, 1024]
   hidden_dim: 512

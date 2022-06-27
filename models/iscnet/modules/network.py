@@ -58,7 +58,7 @@ class ISCNet(BaseNetwork):
         '''freeze submodules or not'''
         self.freeze_modules(cfg)
         self.shape_prior.load_state_dict(torch.load(cfg.config['weight_prior']))
-        # self.shape_embeddings = torch.load(cfg.config['model']['embedding_path'])
+        self.shape_embeddings = torch.load(cfg.config['model']['embedding_path'])
 
     def generate(self, data):
         '''
