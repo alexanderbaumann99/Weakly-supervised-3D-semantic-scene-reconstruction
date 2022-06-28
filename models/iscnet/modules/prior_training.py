@@ -186,7 +186,7 @@ class ShapePrior(nn.Module):
     def save_shape_embedding(self,loader):
         
         num_cats=8
-        emb_per_cat = torch.zeros((num_cats,self.cfg.config['data']['c_dim'])).to(self.device)
+        emb_per_cat = torch.zeros((num_cats,self.cfg.config['data']['c_dim_prior'])).to(self.device)
         n_obj_per_cat = torch.zeros((num_cats,)).to(self.device)
 
         for i, data in enumerate(loader):
