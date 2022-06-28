@@ -24,7 +24,7 @@ scheduler = load_scheduler(config=cfg.config, optimizer=optimizer)
 '''BN momentum scheduler'''
 bnm_scheduler = load_bnm_scheduler(cfg=cfg, net=model, start_epoch=scheduler.last_epoch)
 
-'''
+
 cfg.log_string('Start Training...')
 max_epochs=cfg.config['train']['epochs']
 for epoch in range(max_epochs):
@@ -42,7 +42,6 @@ for epoch in range(max_epochs):
     if (epoch+1)%2==0:
         torch.save(model.state_dict(), cfg.save_path + "/weights_epoch_"+str(epoch+1))
 cfg.write_config()
-'''
 
 
-model.save_shape_embedding(train_loader)
+#model.save_shape_embedding(train_loader)

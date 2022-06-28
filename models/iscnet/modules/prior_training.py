@@ -190,7 +190,7 @@ class ShapePrior(nn.Module):
         n_obj_per_cat = torch.zeros((num_cats,)).to(self.device)
 
         for i, data in enumerate(loader):
-            print(i)
+            #print(i)
             point_cloud = data['point_cloud'].to(self.device)
             cat = data['sem_cls_id']
             with torch.no_grad():
@@ -198,7 +198,6 @@ class ShapePrior(nn.Module):
             for j in range(shape_embs.shape[0]):
                 emb_per_cat[int(cat[j]),:]+=shape_embs[j,:]
                 n_obj_per_cat[int(cat[j])]+=1
-            break
 
         for j in range(n_obj_per_cat.shape[0]): 
             emb_per_cat[j] /= n_obj_per_cat[j]

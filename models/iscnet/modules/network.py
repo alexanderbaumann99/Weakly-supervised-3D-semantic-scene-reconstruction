@@ -58,7 +58,7 @@ class ISCNet(BaseNetwork):
         '''freeze submodules or not'''
         self.freeze_modules(cfg)
         self.shape_prior.load_state_dict(torch.load(cfg.config['weight_prior']))
-        self.shape_embeddings = torch.load(cfg.config['model']['embedding_path'])
+        self.shape_embeddings = torch.load(cfg.config['data']['embedding_path'])
 
     def generate(self, data):
         '''
@@ -435,7 +435,7 @@ class ISCNet(BaseNetwork):
             BATCH_PROPOSAL_IDs = None
             shape_retrieval_loss = torch.tensor(0.).to(features.device)
             mask_loss = torch.tensor(0.).to(features.device)
-
+        
         completion_loss = torch.cat([shape_retrieval_loss.unsqueeze(0), mask_loss.unsqueeze(0)], dim=0)
         return end_points, completion_loss.unsqueeze(0), BATCH_PROPOSAL_IDs
 
@@ -532,11 +532,11 @@ class ISCNet(BaseNetwork):
         end_points, completion_loss = est_data[:2]
         total_loss = self.detection_loss(end_points, gt_data, self.cfg.dataset_config)
 
-        """ # --------- INSTANCE COMPLETION ---------
-        if self.cfg.config[self.cfg.config['mode']]['phase'] == 'completion':
+        # --------- INSTANCE COMPLETION ---------
+        if self.cfg.config['data']['skip_propagate']:
             reconstruction_loss = self.completion_loss(completion_loss)
             total_loss = {**total_loss, 'shape_retrieval_loss': reconstruction_loss['shape_retrieval_loss'],
                           'mask_loss':reconstruction_loss['mask_loss']}
-            total_loss['total'] += reconstruction_loss['total_loss'] """
+            total_loss['total'] += reconstruction_loss['total_loss'] 
 
         return total_loss
