@@ -51,52 +51,47 @@ class Generator3DPrior(object):
         self.preprocessor = preprocessor
         self.use_cls_for_completion = use_cls_for_completion
 
-    def generate_mesh(self, point_clouds, return_stats=True): #cls_codes, 
+    def generate_mesh(self, object_features, return_stats=True):  # cls_codes,
         ''' Generates the output mesh.
 
         Args:
-            object_features (tensor): data tensor
+            object_features (tensor): data tensor of size N x c_dim
             cls_codes (tensor): class one-hot codes.
             return_stats (bool): whether stats should be returned
         '''
         self.model.eval()
-        device = point_clouds.device
-        batch_size = point_clouds.size(0)
+        device = object_features.device
+        batch_size = object_features.size(0)
         kwargs = {}
 
-        #if self.model.use_cls_for_completion:
+        # if self.model.use_cls_for_completion:
         #    object_features = torch.cat([point_clouds, cls_codes], dim=-1)
 
         meshes = []
         for batch_id in range(batch_size):
-            mesh = self.generate_mesh_from_latent(point_clouds[batch_id], device, **kwargs)
+            mesh = self.generate_mesh_from_latent(object_features[batch_id].unsqueeze(0), device, **kwargs)
             meshes.append(mesh)
 
         return meshes
 
-
-    def generate_mesh_from_latent(self, point_cloud, c=None, device='cuda',  **kwargs):
+    def generate_mesh_from_latent(self, z, c=None, device='cuda', **kwargs):
         ''' Generates mesh from latent.
 
         Args:
             z (tensor): latent code z
             c (tensor): latent conditioned code c
         '''
-        #threshold = np.log(self.threshold) - np.log(1. - self.threshold)
+        # threshold = np.log(self.threshold) - np.log(1. - self.threshold)
 
         # Compute bounding box size
         box_size = 1 + self.padding
 
-        # Shortcut
-        self.model.eval()
-        z = self.model.encoder(point_cloud)
-        
         if self.upsampling_steps == 0:
             nx = self.resolution0
             pointsf = box_size * make_3d_grid(
-                (-0.5,)*3, (0.5,)*3, (nx,)*3
+                (-0.5,) * 3, (0.5,) * 3, (nx,) * 3
             ).unsqueeze(0).cuda()
-            values = self.eval_points(point_cloud, pointsf).cpu().numpy()
+            values = self.eval_points(z, pointsf).cpu().numpy()
             value_grid = values.reshape(nx, nx, nx)
         else:
             mesh_extractor = MISE(
@@ -112,7 +107,7 @@ class Generator3DPrior(object):
                 pointsf = box_size * (pointsf - 0.5)
                 # Evaluate model and update
                 values = self.eval_points(
-                    point_cloud, pointsf).cpu().numpy()
+                    z, pointsf).cpu().numpy()
                 values = values.astype(np.float64)
                 mesh_extractor.update(points, values)
                 points = mesh_extractor.query()
@@ -121,39 +116,20 @@ class Generator3DPrior(object):
 
         # Extract mesh
         mesh = self.extract_mesh(value_grid, z, c)
-        print(mesh.vertices.shape)
         return mesh
 
-
-    def eval_points(self, point_cloud, qp):#, c=None, device='cuda', **kwargs):
+    def eval_points(self, z, qp):
         ''' Evaluates the sdf values for the points.
 
         Args:
-            p (tensor): points
-            z (tensor): latent code z
-            c (tensor): latent conditioned code c
+            z (tensor): latent vector
+            qp (tensor): query points
         '''
-
         self.model.eval()
-        self.model.generate_latent(point_cloud)
+        self.model.set_latent(z)
         preds = self.model(qp)
 
         return preds
-        '''
-        p_split = torch.split(p, self.points_batch_size)
-        occ_hats = []
-
-        for pi in p_split:
-            pi = pi.unsqueeze(0).to(device)
-            with torch.no_grad():
-                occ_hat = self.model.decode(pi, z, c, **kwargs).logits
-
-            occ_hats.append(occ_hat.squeeze(0).detach().cpu())
-
-        occ_hat = torch.cat(occ_hats, dim=0)
-        
-        return occ_hat
-        '''
 
 
     def extract_mesh(self, sdf_grid, z, c=None):
@@ -167,11 +143,11 @@ class Generator3DPrior(object):
         # Some short hands
         n_x, n_y, n_z = sdf_grid.shape
         box_size = 1 + self.padding
-        #threshold = np.log(self.threshold) - np.log(1. - self.threshold)
+        # threshold = np.log(self.threshold) - np.log(1. - self.threshold)
         # Make sure that mesh is watertight
-        sdf_grid_padded=sdf_grid
-        #sdf_grid_padded = np.pad(
-            #sdf_grid, 1, 'constant', constant_values=-1e6)
+        sdf_grid_padded = sdf_grid
+        # sdf_grid_padded = np.pad(
+        # sdf_grid, 1, 'constant', constant_values=-1e6)
         vertices, triangles = mcubes.marching_cubes(
             sdf_grid_padded, self.threshold)
         # Strange behaviour in libmcubes: vertices are shifted by 0.5
@@ -179,7 +155,7 @@ class Generator3DPrior(object):
         # Undo padding
         vertices -= 1
         # Normalize to bounding box
-        vertices /= np.array([n_x-1, n_y-1, n_z-1])
+        vertices /= np.array([n_x - 1, n_y - 1, n_z - 1])
         vertices = box_size * (vertices - 0.5)
 
         # mesh_pymesh = pymesh.form_mesh(vertices, triangles)
@@ -252,7 +228,7 @@ class Generator3DPrior(object):
 
         # Some shorthands
         n_x, n_y, n_z = occ_hat.shape
-        assert(n_x == n_y == n_z)
+        assert (n_x == n_y == n_z)
         # threshold = np.log(self.threshold) - np.log(1. - self.threshold)
         threshold = self.threshold
 
@@ -279,7 +255,7 @@ class Generator3DPrior(object):
             face_v2 = face_vertex[:, 2, :] - face_vertex[:, 1, :]
             face_normal = torch.cross(face_v1, face_v2)
             face_normal = face_normal / \
-                (face_normal.norm(dim=1, keepdim=True) + 1e-10)
+                          (face_normal.norm(dim=1, keepdim=True) + 1e-10)
             face_value = torch.sigmoid(
                 self.model.decode(face_point.unsqueeze(0), z, c).logits
             )
