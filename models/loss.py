@@ -445,7 +445,7 @@ class ShapeRetrievalLoss(BaseLoss):
                 neg_shape_emb[batch_id,object_id] = shape_embeddings[idx_neg,:]
         
         shape_retrieval_loss = max(torch.nn.functional.mse_loss(object_input_features,pos_shape_emb)-\
-            torch.nn.functional.mse_loss(object_input_features,neg_shape_emb)+0.5,0)
+            torch.nn.functional.mse_loss(object_input_features,neg_shape_emb)+0.5, torch.tensor(0.))
     
         return shape_retrieval_loss
 
