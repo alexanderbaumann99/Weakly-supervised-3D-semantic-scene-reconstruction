@@ -3,6 +3,7 @@
 # date: Feb, 2020
 
 from models.registers import METHODS, MODULES, LOSSES
+from models.iscnet.modules.layers import ResnetPointnet
 from models.network import BaseNetwork
 import torch
 from net_utils.nn_distance import nn_distance
@@ -30,8 +31,7 @@ class ISCNet(BaseNetwork):
             phase_names += ['backbone', 'voting', 'detection']
         if cfg.config[cfg.config['mode']]['phase'] in ['completion']:
             phase_names += ['backbone', 'voting', 'detection', 'completion', 'group_and_align', 'shape_prior']
-        if cfg.config['data']['skip_propagate']:
-            phase_names += ['skip_propagation']
+    
 
         if (not cfg.config['model']) or (not phase_names):
             cfg.log_string('No submodule found. Please check the phase name and model definition.')
@@ -51,9 +51,6 @@ class ISCNet(BaseNetwork):
             if phase_name == 'shape_prior':
                 setattr(self, phase_name + '_loss', LOSSES.get(self.cfg.config['model'][phase_name]['loss'], 'Null')(
                     self.cfg.config['model'][phase_name].get('weight_prior', 1)))
-            elif cfg.config['data']['skip_propagate']:
-                setattr(self, phase_name + '_loss', LOSSES.get(self.cfg.config['model'][phase_name]['loss'], 'Null')(
-                    self.cfg.config['model'][phase_name].get('weight_retrieval', 1)))
             else:
                 setattr(self, phase_name + '_loss', LOSSES.get(self.cfg.config['model'][phase_name]['loss'], 'Null')(
                     self.cfg.config['model'][phase_name].get('weight', 1)))
@@ -62,6 +59,11 @@ class ISCNet(BaseNetwork):
         self.freeze_modules(cfg)
         self.shape_prior.load_state_dict(torch.load(cfg.config['weight_prior']))
         self.shape_embeddings = torch.load(cfg.config['data']['embedding_path'])
+        
+        #self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim_prior'],
+                                      #dim=3,
+                                      #hidden_dim=cfg.config['data']['hidden_dim'])
+        #self.encoder.load_state_dict(torch.load(cfg.config['weights_encoder']))
 
     def generate(self, data):
         '''
@@ -134,15 +136,16 @@ class ISCNet(BaseNetwork):
                 # gather instance labels
                 proposal_instance_labels = torch.gather(data['object_instance_labels'], 1, BATCH_PROPOSAL_IDs[..., 1])
 
-                if self.cfg.config['data']['skip_propagate']:
+                if self.cfg.config['data']['retrieval']:
                     # --------- SHAPE RETRIEVAL --------
-                    object_input_features, mask_loss = self.skip_propagation(pred_centers, heading_angles,
-                                                                             proposal_features, inputs['point_clouds'],
-                                                                             data['point_instance_labels'],
-                                                                             proposal_instance_labels)
-                    batch_size, feat_dim, N_proposals = object_input_features.size()
-                    # to N x c_dim (batch_size is 1)
-                    object_input_features = object_input_features.squeeze().permute(1,0)
+                    point_clouds, features = self.group_and_align(pred_centers, heading_angles,
+                                                                  proposal_features, inputs['point_clouds'],
+                                                                  data['point_instance_labels'],
+                                                                  proposal_instance_labels)
+                    N_proposals, batch_size, _, _ = point_clouds.size()
+                    self.shape_prior.eval()
+                    point_clouds = point_clouds.squeeze()
+                    object_input_features = self.completion(point_clouds)
                 else:
                     # --------- SHAPE PRIOR --------
                     point_clouds, features = self.group_and_align(pred_centers, heading_angles,
@@ -157,11 +160,9 @@ class ISCNet(BaseNetwork):
                 # --------- SHAPE COMPLETION --------
                 # Prepare input-output pairs for shape completion
                 # proposal_to_gt_box_w_cls_list (B x N_Limit x 4): (bool_mask, proposal_id, gt_box_id, cls_id)
-                input_points_for_completion, \
-                input_points_occ_for_completion, \
-                _ = self.prepare_data(data, BATCH_PROPOSAL_IDs)
-
-                # object_input_features = object_input_features.transpose(1, 2).contiguous().view(batch_size * N_proposals, feat_dim)
+                #input_points_for_completion, \
+                #input_points_occ_for_completion, \
+                #_ = self.prepare_data(data, BATCH_PROPOSAL_IDs)
 
                 gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, end_points['sem_cls_scores'].size(2))
                 cls_codes_for_completion = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
@@ -170,11 +171,10 @@ class ISCNet(BaseNetwork):
                         0]).float()
                 cls_codes_for_completion = cls_codes_for_completion.view(batch_size * N_proposals, -1)
 
-                completion_loss, shape_example = self.shape_prior.compute_loss(object_input_features,
-                                                                               input_points_for_completion,
-                                                                               input_points_occ_for_completion,
-                                                                               cls_codes_for_completion, True)
-                #print(completion_loss)
+                #completion_loss, shape_example = self.shape_prior.compute_loss(object_input_features,
+                                                                               #input_points_for_completion,
+                                                                               #input_points_occ_for_completion,
+                shape_example = None                                                              #cls_codes_for_completion, True)
                 if shape_example is not None:
                     gt_voxels = data['object_voxels'][0][BATCH_PROPOSAL_IDs[0, ..., 1]]
                     ious = compute_iou(shape_example.cpu().numpy(), gt_voxels.cpu().numpy())
@@ -214,9 +214,9 @@ class ISCNet(BaseNetwork):
                                                             voxel_size=voxel_size)
 
         mask_loss = torch.tensor(0.).to(features.device)  # for skip propagation
+        completion_loss = torch.tensor(0.).to(features.device)
         completion_loss = torch.cat([completion_loss.unsqueeze(0), mask_loss.unsqueeze(0)], dim=0).unsqueeze(0)
-        # shape_example = None
-        # iou_stats = None
+
         return end_points, completion_loss, shape_example, BATCH_PROPOSAL_IDs, eval_dict, meshes, iou_stats, parsed_predictions
 
     def fit_mesh_to_scan(self, pred_mesh_dict, parsed_predictions, eval_dict, input_scan, dump_threshold):
@@ -378,45 +378,46 @@ class ISCNet(BaseNetwork):
 
             # Skip propagate point clouds to box centers.
             device = end_points['center'].device
-            if not self.cfg.config['data']['skip_propagate']:
-                gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(1).repeat(1, 128, 1).long().to(device)
-                object_input_features = torch.gather(proposal_features, 2, gather_ids)
-                mask_loss = torch.tensor(0.).to(features.device)
-            else:
-                # gather proposal features
-                gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(1).repeat(1, 128, 1).long().to(device)
-                proposal_features = torch.gather(proposal_features, 2, gather_ids)
+            
+            # gather proposal features
+            gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(1).repeat(1, 128, 1).long().to(device)
+            proposal_features = torch.gather(proposal_features, 2, gather_ids)
 
-                # gather proposal centers
-                gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 3).long().to(device)
-                pred_centers = torch.gather(end_points['center'], 1, gather_ids)
+            # gather proposal centers
+            gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 3).long().to(device)
+            pred_centers = torch.gather(end_points['center'], 1, gather_ids)
 
-                # gather proposal orientations
-                pred_heading_class = torch.argmax(end_points['heading_scores'], -1)  # B,num_proposal
-                heading_residuals = end_points['heading_residuals_normalized'] * (np.pi / self.cfg.eval_config[
-                    'dataset_config'].num_heading_bin)  # Bxnum_proposalxnum_heading_bin
-                pred_heading_residual = torch.gather(heading_residuals, 2,
-                                                     pred_heading_class.unsqueeze(-1))  # B,num_proposal,1
-                pred_heading_residual.squeeze_(2)
-                heading_angles = self.cfg.eval_config['dataset_config'].class2angle_cuda(pred_heading_class,
-                                                                                         pred_heading_residual)
-                heading_angles = torch.gather(heading_angles, 1, BATCH_PROPOSAL_IDs[..., 0])
+            # gather proposal orientations
+            pred_heading_class = torch.argmax(end_points['heading_scores'], -1)  # B,num_proposal
+            heading_residuals = end_points['heading_residuals_normalized'] * (np.pi / self.cfg.eval_config[
+                'dataset_config'].num_heading_bin)  # Bxnum_proposalxnum_heading_bin
+            pred_heading_residual = torch.gather(heading_residuals, 2,
+                                                 pred_heading_class.unsqueeze(-1))  # B,num_proposal,1
+            pred_heading_residual.squeeze_(2)
+            heading_angles = self.cfg.eval_config['dataset_config'].class2angle_cuda(pred_heading_class,
+                                                                                     pred_heading_residual)
+            heading_angles = torch.gather(heading_angles, 1, BATCH_PROPOSAL_IDs[..., 0])
 
-                # gather instance labels
-                proposal_instance_labels = torch.gather(data['object_instance_labels'], 1, BATCH_PROPOSAL_IDs[..., 1])
+            # gather instance labels
+            proposal_instance_labels = torch.gather(data['object_instance_labels'], 1, BATCH_PROPOSAL_IDs[..., 1])
 
-                object_input_features, mask_loss = self.skip_propagation(pred_centers, heading_angles,
-                                                                         proposal_features, inputs['point_clouds'],
-                                                                         data['point_instance_labels'],
-                                                                         proposal_instance_labels)
-
+            point_clouds, features = self.group_and_align(pred_centers, heading_angles,
+                                                              proposal_features, inputs['point_clouds'],
+                                                              data['point_instance_labels'],
+                                                              proposal_instance_labels)
+            N_proposals, batch_size, _, _ = point_clouds.size()
+            point_clouds = point_clouds.view(N_proposals*batch_size,-1,3)
+            #object_input_features = self.shape_prior.generate_latent(point_clouds)
+            object_input_features = self.completion(point_clouds)
+            object_input_features = object_input_features.view(N_proposals,batch_size,-1)
+                                                                   
             gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 8).long().to(device)
             sem_cls_scores = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
             sem_cls_labels = torch.argmax(sem_cls_scores, dim=2).long()
 
             # self.shape_embeddings has size num_cls x feat_dim = 8 x feat_dim
-            object_input_features = object_input_features.transpose(1, 2)
-            shape_retrieval_loss = self.shape_prior_loss(object_input_features, self.shape_embeddings, sem_cls_labels,
+            object_input_features = object_input_features.transpose(0,1)
+            shape_retrieval_loss = self.completion_loss(object_input_features, self.shape_embeddings, sem_cls_labels,
                                                          device)
 
         else:
@@ -424,8 +425,8 @@ class ISCNet(BaseNetwork):
             shape_retrieval_loss = torch.tensor(0.).to(features.device)
             mask_loss = torch.tensor(0.).to(features.device)
         
-        completion_loss = torch.cat([shape_retrieval_loss.unsqueeze(0), mask_loss.unsqueeze(0)], dim=0)
-        return end_points, completion_loss.unsqueeze(0), BATCH_PROPOSAL_IDs
+        completion_loss = shape_retrieval_loss.unsqueeze(0)
+        return end_points, completion_loss, BATCH_PROPOSAL_IDs
 
     def get_proposal_id(self, end_points, data, mode='random', batch_sample_ids=None, DUMP_CONF_THRESH=-1.):
         '''
@@ -518,13 +519,13 @@ class ISCNet(BaseNetwork):
         calculate loss of est_out given gt_out.
         '''
         end_points, completion_loss = est_data[:2]
+        completion_loss = completion_loss.mean().squeeze()
+ 
         total_loss = self.detection_loss(end_points, gt_data, self.cfg.dataset_config)
 
         # --------- INSTANCE COMPLETION ---------
-        if self.cfg.config['data']['skip_propagate']:
-            reconstruction_loss = self.completion_loss(completion_loss)
-            total_loss = {**total_loss, 'shape_retrieval_loss': reconstruction_loss['shape_retrieval_loss'],
-                          'mask_loss':reconstruction_loss['mask_loss']}
-            total_loss['total'] += reconstruction_loss['total_loss'] 
+        if self.cfg.config['data']['retrieval']:
+            total_loss = {**total_loss, 'shape_retrieval_loss': completion_loss.item()}
+            total_loss['total'] += completion_loss
 
         return total_loss

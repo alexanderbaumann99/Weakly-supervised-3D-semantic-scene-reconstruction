@@ -430,7 +430,7 @@ class ShapeRetrievalLoss(BaseLoss):
     '''
 
     def __call__(self, object_input_features, shape_embeddings,sem_cls_labels,device):
-        
+
         pos_shape_emb = torch.empty((sem_cls_labels.shape[0],sem_cls_labels.shape[1],shape_embeddings.shape[1])).to(device)
         for batch_id in range(sem_cls_labels.shape[0]):
             for object_id in range(sem_cls_labels.shape[1]):
@@ -443,10 +443,11 @@ class ShapeRetrievalLoss(BaseLoss):
                 idx_neg = np.delete(idx,sem_cls_labels[batch_id,object_id].item())
                 idx_neg = np.random.choice(idx_neg)
                 neg_shape_emb[batch_id,object_id] = shape_embeddings[idx_neg,:]
-        
-        shape_retrieval_loss = max(torch.nn.functional.mse_loss(object_input_features,pos_shape_emb)-\
-            torch.nn.functional.mse_loss(object_input_features,neg_shape_emb)+0.5, torch.tensor(0.).to(device))
-    
+            
+        pos_dist = torch.nn.functional.mse_loss(object_input_features,pos_shape_emb,reduction='mean')
+        neg_dist = torch.nn.functional.mse_loss(object_input_features,neg_shape_emb,reduction='mean')
+
+        shape_retrieval_loss = pos_dist
         return shape_retrieval_loss
 
 
