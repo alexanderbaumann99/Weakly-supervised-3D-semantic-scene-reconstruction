@@ -447,7 +447,7 @@ class ShapeRetrievalLoss(BaseLoss):
         pos_dist = torch.nn.functional.mse_loss(object_input_features,pos_shape_emb,reduction='mean')
         neg_dist = torch.nn.functional.mse_loss(object_input_features,neg_shape_emb,reduction='mean')
 
-        shape_retrieval_loss = pos_dist
+        shape_retrieval_loss = max(2*pos_dist - neg_dist + 0.5, torch.tensor(0.).to(device))
         return shape_retrieval_loss
 
 

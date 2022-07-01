@@ -1,8 +1,8 @@
 method: ISCNet
 resume: False
 finetune: True
-weight: ['out/retrieval/2022-06-29T15:31:47.532922/model_best.pth']
-weight_prior: 'raw/weights/weights_epoch_98'
+weight: ['out/retrieval/2022-06-28T11:51:13.572592/model_last.pth']
+weight_prior: 'out/prior/2022-06-17Tfps_qp40000_continued/weights_epoch_98'
 seed: 10
 device:
   use_gpu: True
@@ -28,11 +28,12 @@ data:
   c_dim: 128
   c_dim_prior: 128
   z_dim: 32
-  threshold: 0.5
+  threshold: 0
   completion_limit_in_train: 10
   use_cls_for_completion: False
-  retrieval: False
-  embedding_path: 'raw/weights/shape_embeddings.pt'
+  retrieval: True
+  skip_propagate: True
+  embedding_path: datasets/shape_embeddings.pt
 model:
   backbone:
     method: Pointnet2Backbone
@@ -84,4 +85,4 @@ log:
   save_results: True
   vis_step: 100
   print_step: 10
-  path: out/iscnet
+  path: out/iscnet_test
