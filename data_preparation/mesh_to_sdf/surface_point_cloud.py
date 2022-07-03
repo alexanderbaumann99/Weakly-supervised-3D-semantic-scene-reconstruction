@@ -12,6 +12,7 @@ import pyrender
 import torch
 from dgl.geometry import farthest_point_sampler as fps
 
+
 class BadMeshException(Exception):
     pass
 
@@ -43,14 +44,14 @@ class SurfacePointCloud:
         return result
 
     def get_fps_surface_points(self,count):
-        points=torch.Tensor(self.points)
+        points=torch.Tensor(self.points).cuda()
         B=1
         N=points.shape[0]
-        result = torch.zeros((count * B), dtype=torch.long)
-        dist = torch.zeros((B * N))
-        start_idx = torch.randint(0, N - 1, (B, ), dtype=torch.long)
+        result = torch.zeros((count * B), dtype=torch.long).cuda()
+        dist = torch.zeros((B * N)).cuda()
+        start_idx = torch.randint(0, N - 1, (B, ), dtype=torch.long).cuda()
         fps(data=points,batch_size=B,sample_points=count,dist=dist,start_idx=start_idx,result=result)
-        result=result.numpy()
+        result=result.cpu().numpy()
         result=self.points[result]
         return result 
 
@@ -131,19 +132,19 @@ class SurfacePointCloud:
 
     def sample_sdf_near_surface(self, number_of_points=500000,ratio_surface=0.6, use_scans=True, sign_method='normal', normal_sample_count=11, min_size=0, return_gradients=False):
         query_points = []
-        #surface_sample_count = int(number_of_points * 47 / 50) // 2
-        surface_sample_count=int(number_of_points*ratio_surface) // 2
-        surface_points = self.get_random_surface_points(surface_sample_count, use_scans=use_scans)
+        surface_sample_count=int(number_of_points*ratio_surface)
+        surface_points = self.get_fps_surface_points(surface_sample_count)
         query_points.append(surface_points + np.random.normal(scale=0.0025, size=(surface_sample_count, 3)))
-        query_points.append(surface_points + np.random.normal(scale=0.00025, size=(surface_sample_count, 3)))
+        #query_points.append(surface_points + np.random.normal(scale=0.00025, size=(surface_sample_count, 3)))
         query_points_near_surface = np.concatenate(query_points).astype(np.float32)
         
-        unit_sphere_sample_count = number_of_points - surface_points.shape[0] * 2
+        unit_sphere_sample_count = number_of_points - query_points_near_surface.shape[0] 
         unit_sphere_points = sample_uniform_points(unit_sphere_sample_count).astype(np.float32)
 
         if sign_method == 'normal':
             sdf_near_surface = self.get_sdf_in_batches(query_points_near_surface, use_depth_buffer=False, sample_count=normal_sample_count, return_gradients=return_gradients)
             sdf_sphere = self.get_sdf_in_batches(unit_sphere_points, use_depth_buffer=False, sample_count=normal_sample_count, return_gradients=return_gradients)
+    
         elif sign_method == 'depth':
             sdf_near_surface = self.get_sdf_in_batches(query_points_near_surface, use_depth_buffer=True, return_gradients=return_gradients)
             sdf_sphere = self.get_sdf_in_batches(unit_sphere_points, use_depth_buffer=True, sample_count=normal_sample_count, return_gradients=return_gradients)

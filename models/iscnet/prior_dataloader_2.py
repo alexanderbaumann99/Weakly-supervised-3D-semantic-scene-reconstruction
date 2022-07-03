@@ -9,7 +9,6 @@ from plyfile import PlyData
 
 import pickle
 
-ShapeNetIDs={'02747177': 1}
 
 class ShapeNetDataset(torch.utils.data.Dataset):
     def __init__(self, cfg, mode):
@@ -50,9 +49,8 @@ class ShapeNetDataset(torch.utils.data.Dataset):
             query_points[:, 1] = plydata['vertex'].data['y']
             query_points[:, 2] = plydata['vertex'].data['z']
             query_points[:, 3] = plydata['vertex'].data['sdf']
-        ret_dict['query_points_surface'] = query_points.astype(np.float32)[:, 0:3]
-        ret_dict['sdf_surface'] = query_points.astype(np.float32)[:, 3]
-
+        query_points_surface = query_points[np.random.choice(query_points.shape[0], int(self.num_query_points*0.5), replace=False)]
+        
         query_points_file = os.path.join(*[self.data_path, str(idx), 'query_points_sphere.ply'])
         with open(query_points_file, 'rb') as f:
             plydata = PlyData.read(f)
@@ -62,8 +60,15 @@ class ShapeNetDataset(torch.utils.data.Dataset):
             query_points[:, 1] = plydata['vertex'].data['y']
             query_points[:, 2] = plydata['vertex'].data['z']
             query_points[:, 3] = plydata['vertex'].data['sdf']
-        ret_dict['query_points_sphere'] = query_points.astype(np.float32)[:, 0:3]
-        ret_dict['sdf_sphere'] = query_points.astype(np.float32)[:, 3]
+        query_points_sphere = query_points[np.random.choice(query_points.shape[0], int(self.num_query_points*0.5), replace=False)]
+        
+        query_points = np.concatenate([query_points_surface,query_points_sphere],axis=0)       
+        ret_dict['query_points'] = query_points.astype(np.float32)[:, 0:3]
+        ret_dict['sdf'] = query_points.astype(np.float32)[:, 3]
+        
+        id_dic = np.load(os.path.join(*[self.data_path, str(idx), 'dict_ids.npy']),allow_pickle=True)
+        ret_dict['shapenet_id'] = id_dic.item()['shapenet_id']
+        ret_dict['sem_cls_id'] = id_dic.item()['sem_cls_id']
 
 
         return ret_dict
