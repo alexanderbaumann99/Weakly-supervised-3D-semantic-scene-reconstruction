@@ -154,7 +154,8 @@ class ISCNet(BaseNetwork):
                         N_proposals, batch_size, _, _ = point_clouds.size()
                         self.shape_prior.eval()
                         point_clouds = point_clouds.squeeze()
-                        object_input_features = self.completion(point_clouds)
+                        #object_input_features = self.completion(point_clouds)
+                        object_input_features = self.shape_prior.encoder(point_clouds)
                         mask_loss = torch.tensor(0.).to(features.device)  # for skip propagation
                 else:
                     # --------- SHAPE PRIOR --------
@@ -209,9 +210,10 @@ class ISCNet(BaseNetwork):
 
         '''fit mesh points to scans'''
         pred_mesh_dict = None
+        chamfer_dist = torch.tensor(0.).to(features.device) 
         if self.cfg.config[mode]['phase'] == 'completion' and self.cfg.config['generation']['generate_mesh']:
             pred_mesh_dict = {'meshes': meshes, 'proposal_ids': BATCH_PROPOSAL_IDs}
-            parsed_predictions = self.fit_mesh_to_scan(pred_mesh_dict, parsed_predictions, eval_dict,
+            parsed_predictions, chamfer_dist = self.fit_mesh_to_scan(pred_mesh_dict, parsed_predictions, eval_dict,
                                                        inputs['point_clouds'], dump_threshold)
 
         pred_mesh_dict = pred_mesh_dict if self.cfg.config[mode]['evaluate_mesh_mAP'] else None
@@ -225,7 +227,7 @@ class ISCNet(BaseNetwork):
 
         completion_loss = torch.cat([completion_loss.unsqueeze(0), mask_loss.unsqueeze(0)], dim=0).unsqueeze(0)
 
-        return end_points, completion_loss, shape_example, BATCH_PROPOSAL_IDs, eval_dict, meshes, iou_stats, parsed_predictions
+        return end_points, completion_loss, shape_example, BATCH_PROPOSAL_IDs, eval_dict, meshes, iou_stats, parsed_predictions, chamfer_dist
 
     def fit_mesh_to_scan(self, pred_mesh_dict, parsed_predictions, eval_dict, input_scan, dump_threshold):
         '''fit meshes to input scan'''
@@ -330,6 +332,7 @@ class ISCNet(BaseNetwork):
                 best_loss = loss
             loss.backward()
             optimizer.step()
+        #print(best_loss)
 
         for idx in range(box_params_list.shape[0]):
             i, j = index_list[idx]
@@ -338,7 +341,7 @@ class ISCNet(BaseNetwork):
             pred_corners_3d_upright_camera[i, j] = best_box_corners_cam
 
         parsed_predictions['pred_corners_3d_upright_camera'] = pred_corners_3d_upright_camera
-        return parsed_predictions
+        return parsed_predictions, best_loss
 
     def chamfer_dist(self, obj_points, obj_points_masks, pc_in_box, pc_in_box_masks, centroid_params,
                      orientation_params):
@@ -422,7 +425,8 @@ class ISCNet(BaseNetwork):
                 N_proposals, batch_size, _, _ = point_clouds.size()
                 point_clouds = point_clouds.view(N_proposals * batch_size, -1, 3)
                 # object_input_features = self.shape_prior.generate_latent(point_clouds)
-                object_input_features = self.completion(point_clouds)
+                #object_input_features = self.completion(point_clouds)
+                object_input_features = self.shape_prior.encoder(point_clouds)
                 object_input_features = object_input_features.view(N_proposals, batch_size, -1)
 
             gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 8).long().to(device)

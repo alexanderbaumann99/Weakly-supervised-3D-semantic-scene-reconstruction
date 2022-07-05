@@ -66,6 +66,7 @@ class Tester(BaseTester, Trainer):
 
         loss['total'] = loss['total'].item()
         loss = {**loss, **eval_metrics}
+        loss['chamfer_dist'] = est_data[8].item()
         return loss, est_data
 
     def visualize_step(self, phase, iter, gt_data, our_data, eval_dict, inference_switch=False):
