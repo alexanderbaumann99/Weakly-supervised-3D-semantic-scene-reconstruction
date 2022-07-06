@@ -54,7 +54,7 @@ def create_mesh(
     while head < num_samples:
         sample_subset = samples[head : min(head + max_batch, num_samples), 0:3].cuda().view(1,-1,3)
         samples[head : min(head + max_batch, num_samples), 3] = \
-            model(sample_subset).squeeze().detach().cpu()
+            model.compute_sdf(sample_subset).squeeze().detach().cpu()
         
         head += max_batch
 
