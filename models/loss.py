@@ -285,26 +285,6 @@ class ChamferDist(BaseLoss):
         return loss
 
 
-@LOSSES.register_module
-class PCN_Loss(BaseLoss):
-    def __init__(self, weight):
-        super(PCN_Loss, self).__init__(weight)
-        self.chamfer_distance = ChamferDist()
-
-    def __call__(self, pred_fine, pred_coarses, full_scan, full_scan_coarse):
-        CD_LOSS = self.chamfer_distance(pred_fine, full_scan)
-        errG = CD_LOSS + 0.1 * self.chamfer_distance(pred_coarses, full_scan_coarse)
-        return self.weight * errG, CD_LOSS.item()
-
-@LOSSES.register_module
-class ReconstructionLoss(BaseLoss):
-    def __call__(self, value):
-        shape_retrieval_loss = torch.mean(value[:,0])
-        mask_loss = torch.mean(value[:,1])
-        total_loss = self.weight * (shape_retrieval_loss + 100*mask_loss)
-        return {'total_loss': total_loss,
-                'shape_retrieval_loss': shape_retrieval_loss.item(),
-                'mask_loss': mask_loss.item()}
 
 def compute_objectness_loss_boxnet(est_data, gt_data):
     """ Compute objectness loss for the proposals.
@@ -413,11 +393,6 @@ class BoxNetDetectionLoss(BaseLoss):
                 'size_reg_loss': size_reg_loss.item(),
                 'obj_acc': obj_acc.item()}
 
-
-class ShapePriorLoss(BaseLoss):
-    def __call__(self, pred, gt):
-        total_loss=F.mse_loss(pred,torch.sign(gt))
-        return {'total_loss': total_loss}
 
 @LOSSES.register_module
 class ShapeRetrievalLoss(BaseLoss):
