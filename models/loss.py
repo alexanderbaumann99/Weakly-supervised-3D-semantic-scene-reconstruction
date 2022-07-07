@@ -421,13 +421,13 @@ class ShapePriorLoss(BaseLoss):
 
 @LOSSES.register_module
 class ShapeRetrievalLoss(BaseLoss):
-    ''' Loss function for shape retrieval
+    Loss function for shape retrieval
     Args:
         object_input_features: features of each object, size B x 10 x feat_dim
         shape_embeddings:      shape embeddings from pretrained Shape Prior, size: 8 x feat_dim
         sem_cls_labels:        semnatic class labels of each object, computed in the detection, size: B x 10
         device
-    '''
+
 
     def __call__(self, object_input_features, shape_embeddings,sem_cls_labels,device):
 
@@ -443,7 +443,7 @@ class ShapeRetrievalLoss(BaseLoss):
                 idx_neg = np.delete(idx,sem_cls_labels[batch_id,object_id].item())
                 idx_neg = np.random.choice(idx_neg)
                 neg_shape_emb[batch_id,object_id] = shape_embeddings[idx_neg,:]
-            
+
         pos_dist = torch.nn.functional.mse_loss(object_input_features,pos_shape_emb,reduction='mean')
         neg_dist = torch.nn.functional.mse_loss(object_input_features,neg_shape_emb,reduction='mean')
 
@@ -451,4 +451,38 @@ class ShapeRetrievalLoss(BaseLoss):
         return shape_retrieval_loss
 
 
+@LOSSES.register_module
+class ShapeRetrievalLoss_random(BaseLoss):
+    ''' Loss function for shape retrieval
+    Args:
+        object_input_features: features of each object, size B x 10 x feat_dim
+        shape_embeddings:      shape embeddings from pretrained Shape Prior, size: 8 x feat_dim
+        sem_cls_labels:        semnatic class labels of each object, computed in the detection, size: B x 10
+        device
+    '''
 
+    def __call__(self, object_input_features, shape_embeddings,sem_cls_labels,device):
+        pos_shape_emb = torch.empty((sem_cls_labels.shape[0],sem_cls_labels.shape[1],shape_embeddings[0][0].shape[0])).to(device)
+        neg_shape_emb = torch.empty((sem_cls_labels.shape[0],sem_cls_labels.shape[1],shape_embeddings[0][0].shape[0])).to(device)
+        categories = np.arange(8)
+        
+        for batch_id in range(sem_cls_labels.shape[0]):
+            for object_id in range(sem_cls_labels.shape[1]):
+                label = sem_cls_labels[batch_id,object_id]
+                random_idx = np.random.choice(len(shape_embeddings[label]),1)[0]
+                pos_shape_emb[batch_id,object_id,:] = shape_embeddings[label][random_idx]
+                
+        for batch_id in range(sem_cls_labels.shape[0]):
+            for object_id in range(sem_cls_labels.shape[1]):
+                label = sem_cls_labels[batch_id,object_id]
+                neg_cat = categories[categories!=label].squeeze()
+                random_cat = np.random.choice(neg_cat,1)[0]
+                random_idx = np.random.choice(len(shape_embeddings[random_cat]),1)[0]
+                neg_shape_emb[batch_id,object_id,:] = shape_embeddings[random_cat][random_idx]
+        
+        pos_dist = torch.nn.functional.mse_loss(object_input_features,pos_shape_emb,reduction='mean')
+        neg_dist = torch.nn.functional.mse_loss(object_input_features,neg_shape_emb,reduction='mean')
+        print('positive: ',pos_dist)
+        print('negative: ',neg_dist)
+        shape_retrieval_loss = max(2*pos_dist - neg_dist + 0.5, torch.tensor(0.).to(device))
+        return shape_retrieval_loss
