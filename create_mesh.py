@@ -10,7 +10,7 @@ from net_utils.visualize_sdf import create_mesh
 
 n=233
 
-cfg = CONFIG('configs/config_files/ISCNet.yaml')
+cfg = CONFIG('configs/config_files/ISCNet_prior.yaml')
 cfg = mount_external_config(cfg)
 model=ShapePrior(cfg)
 model.eval()

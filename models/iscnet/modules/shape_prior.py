@@ -49,28 +49,28 @@ class ShapePrior(nn.Module):
         self.threshold = cfg.config['data']['threshold']
         '''Definition of the modules'''
         leaky = False
-        self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim_prior'],
+        self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim'],
                                       dim=3,
                                       hidden_dim=cfg.config['data']['hidden_dim'])
 
-        hidden_dim = cfg.config['data']['c_dim_prior']
+        hidden_dim = cfg.config['data']['c_dim']
         self.fc1 = nn.Conv1d(3, hidden_dim, 1)
-        self.dblock1 = DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
+        self.dblock1 = DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                     hidden_dim=hidden_dim,
                                     leaky=leaky)
-        self.dblock2 = DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
+        self.dblock2 = DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                     hidden_dim=hidden_dim,
                                     leaky=leaky)
-        self.dblock3 = DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
+        self.dblock3 = DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                     hidden_dim=hidden_dim,
                                     leaky=leaky)
-        self.dblock4 = DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
+        self.dblock4 = DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                     hidden_dim=hidden_dim,
                                     leaky=leaky)
-        self.dblock5 = DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
+        self.dblock5 = DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                     hidden_dim=hidden_dim,
                                     leaky=leaky)
-        self.CBatchNorm = CBatchNorm1d(c_dim=cfg.config['data']['c_dim_prior'],
+        self.CBatchNorm = CBatchNorm1d(c_dim=cfg.config['data']['c_dim'],
                                        f_dim=hidden_dim)
         self.fc2 = nn.Conv1d(hidden_dim, 1, 1)
         self.act = nn.ReLU()

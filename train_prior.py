@@ -6,7 +6,7 @@ from models.optimizers import load_optimizer,load_bnm_scheduler,load_scheduler
 from configs.config_utils import mount_external_config
 from configs.config_utils import CONFIG
 
-cfg = CONFIG('configs/config_files/ISCNet.yaml')
+cfg = CONFIG('configs/config_files/ISCNet_prior.yaml')
 cfg = mount_external_config(cfg)
 writer = SummaryWriter(log_dir=cfg.save_path)
 device = torch.device("cuda")

@@ -51,7 +51,7 @@ def prepare_data(cfg,input_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('data preparation')
-    parser.add_argument('--config', type=str, default='../configs/config_files/ISCNet.yaml',
+    parser.add_argument('--config', type=str, default='../configs/config_files/ISCNet_prior.yaml',
                         help='configure file')
     parser.add_argument('--input-path', type=str, help='path for raw ShapeNet data')
     args = parser.parse_args()

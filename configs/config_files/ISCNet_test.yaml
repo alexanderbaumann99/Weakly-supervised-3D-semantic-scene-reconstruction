@@ -26,8 +26,6 @@ data:
   points_subsample: [1024, 1024]
   hidden_dim: 512
   c_dim: 128
-  c_dim_prior: 128
-  z_dim: 32
   threshold: 0
   completion_limit_in_train: 10
   use_cls_for_completion: False
@@ -55,8 +53,7 @@ model:
     loss: Null
   shape_prior:
     method: ShapePrior
-    loss: ShapePriorLoss
-    ClampingDistance: 0.1
+    loss: Null
 test:
   phase: 'completion'
   batch_size: 1

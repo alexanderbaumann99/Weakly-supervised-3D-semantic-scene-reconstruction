@@ -12,6 +12,7 @@ from external.common import compute_iou
 from net_utils.libs import flip_axis_to_depth, extract_pc_in_box3d, flip_axis_to_camera
 from torch import optim
 from models.loss import chamfer_func
+from models.loss import ShapeRetrievalLoss
 from net_utils.box_util import get_3d_box
 
 
@@ -60,7 +61,7 @@ class ISCNet(BaseNetwork):
         self.shape_prior.load_state_dict(torch.load(cfg.config['weight_prior']))
         self.shape_embeddings = torch.load(cfg.config['data']['embedding_path'])
 
-        #self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim_prior'],
+        #self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim'],
                                       #dim=3,
                                       #hidden_dim=cfg.config['data']['hidden_dim'])
         #self.encoder.load_state_dict(torch.load(cfg.config['weights_encoder']))
@@ -435,7 +436,7 @@ class ISCNet(BaseNetwork):
 
             # self.shape_embeddings has size num_cls x feat_dim = 8 x feat_dim
             object_input_features = object_input_features.transpose(0,1)
-            shape_retrieval_loss = self.completion_loss(object_input_features, self.shape_embeddings, sem_cls_labels,
+            shape_retrieval_loss = ShapeRetrievalLoss(object_input_features, self.shape_embeddings, sem_cls_labels,
                                                          device)
 
         else:

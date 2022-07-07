@@ -43,10 +43,6 @@ model:
   skip_propagation:
     method: SkipPropagation
     loss: Null
-  completion:
-    method: ONet
-    loss: ONet_Loss
-    weight: 1
 optimizer:
   method: Adam
   lr: 1e-3
