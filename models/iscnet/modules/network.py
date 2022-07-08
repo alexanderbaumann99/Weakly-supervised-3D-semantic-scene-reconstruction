@@ -537,14 +537,14 @@ class ISCNet(BaseNetwork):
         '''
         calculate loss of est_out given gt_out.
         '''
-        end_points, completion_loss = est_data[:2]
-        completion_loss = completion_loss.mean().squeeze()
+        end_points, retrieval_loss = est_data[:2]
+        retrieval_loss = retrieval_loss.mean().squeeze()
  
         total_loss = self.detection_loss(end_points, gt_data, self.cfg.dataset_config)
 
         # --------- INSTANCE COMPLETION ---------
         if self.cfg.config['data']['retrieval']:
-            total_loss = {**total_loss, 'shape_retrieval_loss': completion_loss.item()}
-            total_loss['total'] += completion_loss
+            total_loss = {**total_loss, 'shape_retrieval_loss': retrieval_loss.item()}
+            total_loss['total'] += retrieval_loss
 
         return total_loss
