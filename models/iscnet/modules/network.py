@@ -418,6 +418,7 @@ class ISCNet(BaseNetwork):
                                                                              proposal_features, inputs['point_clouds'],
                                                                              data['point_instance_labels'],
                                                                              proposal_instance_labels)
+                object_input_features = object_input_features.transpose(1,2)
             else:
                 point_clouds, features = self.group_and_align(pred_centers, heading_angles,
                                                               proposal_features, inputs['point_clouds'],
@@ -429,13 +430,12 @@ class ISCNet(BaseNetwork):
                 #object_input_features = self.completion(point_clouds)
                 object_input_features = self.shape_prior.encoder(point_clouds)
                 object_input_features = object_input_features.view(N_proposals, batch_size, -1)
+                object_input_features = object_input_features.transpose(0,1)
 
             gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 8).long().to(device)
             sem_cls_scores = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
             sem_cls_labels = torch.argmax(sem_cls_scores, dim=2).long()
 
-            # self.shape_embeddings has size num_cls x feat_dim = 8 x feat_dim
-            object_input_features = object_input_features.transpose(0,1)
             shape_retrieval_loss = ShapeRetrievalLoss(object_input_features, self.shape_embeddings, sem_cls_labels,
                                                          device)
 
