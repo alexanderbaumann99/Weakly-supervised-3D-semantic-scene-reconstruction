@@ -1,4 +1,4 @@
-from models.iscnet.modules.generator_prior import Generator3DPrior
+from models.iscnet.modules.generator import Generator3D
 from models.iscnet.modules.layers import ResnetPointnet, CBatchNorm1d
 import torch
 import torch.nn as nn
@@ -79,8 +79,8 @@ class ShapePrior(nn.Module):
 
         '''Mount mesh generator'''
         if 'generation' in cfg.config and cfg.config['generation']['generate_mesh']:
-            from models.iscnet.modules.generator_prior import Generator3DPrior
-            self.generator = Generator3DPrior(self,
+            from models.iscnet.modules.generator import Generator3D
+            self.generator = Generator3D(self,
                                               threshold=cfg.config['data']['threshold'],
                                               resolution0=cfg.config['generation']['resolution_0'],
                                               upsampling_steps=cfg.config['generation']['upsampling_steps'],

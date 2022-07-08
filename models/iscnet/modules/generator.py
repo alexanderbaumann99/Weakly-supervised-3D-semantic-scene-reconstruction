@@ -8,10 +8,9 @@ import mcubes
 from external.common import make_3d_grid
 from external.libsimplify import simplify_mesh
 from external.libmise import MISE
-import time
 
 
-class Generator3DPrior(object):
+class Generator3D(object):
     '''  Generator class for Occupancy Networks.
 
     It provides functions to generate the final mesh as well refining options.
