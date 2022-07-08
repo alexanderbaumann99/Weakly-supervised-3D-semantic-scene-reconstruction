@@ -6,4 +6,4 @@ from .skip_propagation import SkipPropagation
 from .group_and_align import GroupAndAlign
 from .shape_prior import ShapePrior
 
-__all__ = ['ISCNet','GroupAndAlign','Pointnet2Backbone', 'ProposalModule', 'VotingModule','ShapePrior','ShapeRetrieval']
+__all__ = ['ISCNet','GroupAndAlign','Pointnet2Backbone', 'ProposalModule', 'VotingModule', 'ShapePrior']

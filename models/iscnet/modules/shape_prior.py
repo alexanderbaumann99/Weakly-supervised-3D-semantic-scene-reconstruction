@@ -144,7 +144,6 @@ class ShapePrior(nn.Module):
         :return:
         '''
         self.eval()
-        print(object_input_features.shape)
         self.set_latent(object_input_features)
         device = query_points.device
         batch_size = query_points.size(0)
@@ -157,7 +156,6 @@ class ShapePrior(nn.Module):
 
         preds = self.forward(query_points)
         loss = F.mse_loss(preds.squeeze(), torch.sign(query_points_occ), reduction='mean')
-        print(loss)
 
         if export_shape:
             shape = (16, 16, 16)

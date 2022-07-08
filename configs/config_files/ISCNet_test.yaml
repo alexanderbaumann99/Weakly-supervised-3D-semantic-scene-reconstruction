@@ -1,8 +1,8 @@
 method: ISCNet
 resume: False
 finetune: True
-weight: ['out/retrieval/2022-06-28T11:51:13.572592/model_last.pth']
-weight_prior: 'out/prior/2022-06-17Tfps_qp40000_continued/weights_epoch_98'
+weight: ['out/retrieval/2022-07-07Tskip_propagation_newprior/model_last.pth']
+weight_prior: 'out/prior/prior_fps_new/weights_epoch_170'
 seed: 10
 device:
   use_gpu: True
@@ -31,7 +31,7 @@ data:
   use_cls_for_completion: False
   retrieval: True
   skip_propagate: True
-  embedding_path: datasets/shape_embeddings.pt
+  embedding_path: out/prior/prior_fps_new/shape_embeddings.pt
 model:
   backbone:
     method: Pointnet2Backbone
@@ -45,9 +45,6 @@ model:
   skip_propagation:
     method: SkipPropagation
     loss: Null
-  completion:
-    method: ShapeRetrieval
-    loss: ShapeRetrievalLoss
   group_and_align:
     method: GroupAndAlign
     loss: Null
