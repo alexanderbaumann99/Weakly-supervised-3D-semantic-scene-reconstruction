@@ -1,7 +1,7 @@
 method: ISCNet
 resume: False
 finetune: True
-weight: ['out/retrieval/2022-07-07Tskip_propagation_newprior/model_last.pth']
+weight: ['out/retrieval/2022-07-07Tskip_propagation_newprior/model_best.pth']
 weight_prior: 'out/prior/prior_fps_new/weights_epoch_170'
 seed: 10
 device:

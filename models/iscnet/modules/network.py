@@ -60,6 +60,7 @@ class ISCNet(BaseNetwork):
         self.freeze_modules(cfg)
         self.shape_prior.load_state_dict(torch.load(cfg.config['weight_prior']))
         self.shape_embeddings = torch.load(cfg.config['data']['embedding_path'])
+        self.shape_retrieval_loss = ShapeRetrievalLoss()
 
         #self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim'],
                                       #dim=3,
@@ -227,6 +228,7 @@ class ISCNet(BaseNetwork):
                                                             voxel_size=voxel_size)
 
         completion_loss = torch.cat([completion_loss.unsqueeze(0), mask_loss.unsqueeze(0)], dim=0).unsqueeze(0)
+        print(chamfer_dist.item())
 
         return end_points, completion_loss, shape_example, BATCH_PROPOSAL_IDs, eval_dict, meshes, iou_stats, parsed_predictions, chamfer_dist
 
@@ -326,14 +328,16 @@ class ISCNet(BaseNetwork):
         for iter in range(iterations):
             optimizer.zero_grad()
             loss = self.chamfer_dist(obj_points_list, obj_points_mask_list, pc_in_box_list, pc_in_box_mask_list,
-                                     centroid_params, orientation_params)
+                                         centroid_params, orientation_params)
             if loss < best_loss:
                 centroid_params_cpu = centroid_params.data.cpu().numpy()
                 orientation_params_cpu = orientation_params.data.cpu().numpy()
                 best_loss = loss
             loss.backward()
             optimizer.step()
-        #print(best_loss)
+        dist1, dist2 = chamfer_func(obj_points_list, pc_in_box_list)
+        best_loss = torch.mean(dist2 * pc_in_box_mask_list) * 1e3
+        print(best_loss)
 
         for idx in range(box_params_list.shape[0]):
             i, j = index_list[idx]
@@ -436,8 +440,7 @@ class ISCNet(BaseNetwork):
             sem_cls_scores = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
             sem_cls_labels = torch.argmax(sem_cls_scores, dim=2).long()
 
-            shape_retrieval_loss = ShapeRetrievalLoss(object_input_features, self.shape_embeddings, sem_cls_labels,
-                                                         device)
+            shape_retrieval_loss = self.shape_retrieval_loss(object_input_features, self.shape_embeddings, sem_cls_labels, device)
 
         else:
             BATCH_PROPOSAL_IDs = None
@@ -445,6 +448,7 @@ class ISCNet(BaseNetwork):
             mask_loss = torch.tensor(0.).to(features.device)
         
         completion_loss = shape_retrieval_loss.unsqueeze(0)
+        torch.save(self.shape_prior.state_dict(), self.cfg.save_path + "/weights_prior_retrieval")
         return end_points, completion_loss, BATCH_PROPOSAL_IDs
 
     def get_proposal_id(self, end_points, data, mode='random', batch_sample_ids=None, DUMP_CONF_THRESH=-1.):
