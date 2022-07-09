@@ -43,9 +43,11 @@ if 'train' in cfg.config['modes']:
         torch.save(model.module.state_dict(), cfg.save_path + "/weights_epoch_last") 
         
 if 'save' in cfg.config['modes']:
+    model.eval()
     model.module.save_shape_embedding(train_loader)
 
 if 'eval' in cfg.config['modes']:
+    model.eval()
     evaluation_epoch(model,train_loader,device,cfg)
     
 cfg.write_config()

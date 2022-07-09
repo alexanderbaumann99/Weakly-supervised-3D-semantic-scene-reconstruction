@@ -100,7 +100,30 @@ class ShapePrior(nn.Module):
         self.latent = self.encoder(pc)
         return self.latent
 
-    def forward(self, query_points):
+    def forward(self,query_points,pc):
+        '''
+        Encodes the point cloud and computes the signed distance of each query point
+        Args: 
+            query_points: query points of the form (N x N_P x 3) 
+            pc:           point cloud of the form (N x N_P x 3) 
+        Returns:
+            out:    signed distance of the form  (N x N_P x 1)    
+        '''
+        self.latent=self.encoder(pc)
+        query_points=query_points.transpose(1,2)
+        out=self.fc1(query_points)
+        out=self.dblock1(out,self.latent)
+        out=self.dblock2(out,self.latent)
+        out=self.dblock3(out,self.latent)
+        out=self.dblock4(out,self.latent)
+        out=self.dblock5(out,self.latent)
+        out=self.act(self.CBatchNorm(out,self.latent))
+        out=torch.tanh(self.fc2(out))
+        out=out.transpose(1,2)
+
+        return out
+    
+    def compute_sdf(self, query_points):
         '''
         Returns the signed distance of each query point to the surface
         Args:
