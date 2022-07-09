@@ -49,24 +49,16 @@ class ISCNet(BaseNetwork):
             self.add_module(phase_name, subnet)
 
             '''load corresponding loss functions'''
-            #if phase_name == 'shape_prior':
             setattr(self, phase_name + '_loss', LOSSES.get(self.cfg.config['model'][phase_name]['loss'], 'Null')(
                 self.cfg.config['model'][phase_name].get('weight', 1)))
-            #else:
-            #    setattr(self, phase_name + '_loss', LOSSES.get(self.cfg.config['model'][phase_name]['loss'], 'Null')(
-            #        self.cfg.config['model'][phase_name].get('weight', 1)))
 
         '''freeze submodules or not'''
         self.freeze_modules(cfg)
-        if cfg.config['mode'] == 'train':
-            self.shape_prior.load_state_dict(torch.load(cfg.config['weight_prior']))
+        if cfg.config[cfg.config['mode']]['phase'] in ['completion']:
+            if cfg.config['mode'] == 'train' or cfg.config['data']['retrieval'] == False:
+                self.shape_prior.load_state_dict(torch.load(cfg.config['weight_prior']))
         self.shape_embeddings = torch.load(cfg.config['data']['embedding_path'])
         self.shape_retrieval_loss = ShapeRetrievalLoss()
-
-        #self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim'],
-                                      #dim=3,
-                                      #hidden_dim=cfg.config['data']['hidden_dim'])
-        #self.encoder.load_state_dict(torch.load(cfg.config['weights_encoder']))
 
     def generate(self, data):
         '''
@@ -138,7 +130,7 @@ class ISCNet(BaseNetwork):
 
                 # gather instance labels
                 proposal_instance_labels = torch.gather(data['object_instance_labels'], 1, BATCH_PROPOSAL_IDs[..., 1])
-                
+
                 gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 8).long().to(device)
                 sem_cls_scores = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
                 sem_cls_labels = torch.argmax(sem_cls_scores, dim=2).long()
@@ -161,7 +153,6 @@ class ISCNet(BaseNetwork):
                         N_proposals, batch_size, _, _ = point_clouds.size()
                         self.shape_prior.eval()
                         point_clouds = point_clouds.squeeze()
-                        #object_input_features = self.completion(point_clouds)
                         object_input_features = self.shape_prior.encoder(point_clouds)
                         mask_loss = torch.tensor(0.).to(features.device)  # for skip propagation
                 else:
@@ -212,7 +203,7 @@ class ISCNet(BaseNetwork):
                 shape_example = None
                 meshes = None
                 iou_stats = None
-                
+
             gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 8).long().to(device)
             sem_cls_scores = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
             sem_cls_labels = torch.argmax(sem_cls_scores, dim=2).long()
@@ -222,7 +213,7 @@ class ISCNet(BaseNetwork):
 
         '''fit mesh points to scans'''
         pred_mesh_dict = None
-        chamfer_dist = torch.tensor(0.).to(features.device) 
+        chamfer_dist = torch.tensor(0.).to(features.device)
         if self.cfg.config[mode]['phase'] == 'completion' and self.cfg.config['generation']['generate_mesh']:
             pred_mesh_dict = {'meshes': meshes, 'proposal_ids': BATCH_PROPOSAL_IDs}
             parsed_predictions, chamfer_dist,chamfer_dist_per_obj = self.fit_mesh_to_scan(pred_mesh_dict,\
@@ -367,7 +358,7 @@ class ISCNet(BaseNetwork):
         axis_rectified[:, 1, 0] = -torch.sin(orientation_params)
         axis_rectified[:, 1, 1] = torch.cos(orientation_params)
         obj_points_after = torch.bmm(obj_points, axis_rectified) + centroid_params.unsqueeze(-2)
-        dist1, dist2 = chamfer_func(obj_points_after, pc_in_box)  
+        dist1, dist2 = chamfer_func(obj_points_after, pc_in_box)
         return dist2 * pc_in_box_masks * 1e3 # distance from points to object
 
     def forward(self, data, export_shape=False):
@@ -403,7 +394,7 @@ class ISCNet(BaseNetwork):
 
             # Skip propagate point clouds to box centers.
             device = end_points['center'].device
-            
+
             # gather proposal features
             gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(1).repeat(1, 128, 1).long().to(device)
             proposal_features = torch.gather(proposal_features, 2, gather_ids)
@@ -455,7 +446,7 @@ class ISCNet(BaseNetwork):
             BATCH_PROPOSAL_IDs = None
             shape_retrieval_loss = torch.tensor(0.).to(features.device)
             mask_loss = torch.tensor(0.).to(features.device)
-        
+
         completion_loss = torch.tensor(0.).to(features.device)
         completion_loss = torch.cat([completion_loss.unsqueeze(0), mask_loss.unsqueeze(0), shape_retrieval_loss.unsqueeze(0)], dim=0).unsqueeze(0)
         return end_points, completion_loss, BATCH_PROPOSAL_IDs
@@ -554,12 +545,12 @@ class ISCNet(BaseNetwork):
         completion_loss = completion_loss.squeeze()
         retrieval_loss = completion_loss[2].item()
         completion_loss = completion_loss[:2].mean().squeeze()
-        
+
         total_loss = self.detection_loss(end_points, gt_data, self.cfg.dataset_config)
 
         # --------- INSTANCE COMPLETION ---------
         if self.cfg.config['data']['retrieval']:
-            total_loss = {**total_loss, 'completion_loss': completion_loss.item(), 
+            total_loss = {**total_loss, 'completion_loss': completion_loss.item(),
             'shape_retrieval_loss': retrieval_loss}
             total_loss['total'] += completion_loss + retrieval_loss
 
