@@ -1,6 +1,7 @@
 method: ISCNet
 weight_prior: 'out/prior/2022-07-06T18:40:00.208561/weights_epoch_170'
 seed: 10
+modes: ['eval'] ## 'train', 'save', 'eval'
 device:
   use_gpu: True
   gpu_ids: '0,1'

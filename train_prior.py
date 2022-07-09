@@ -24,27 +24,28 @@ if cfg.config['weight_prior'] is not None:
     model.load_state_dict(torch.load(cfg.config['weight_prior']))
 model = torch.nn.DataParallel(model).to(device)
 
+if 'train' in cfg.config['modes']:
+    optimizer=load_optimizer(cfg.config,model)
+    scheduler = load_scheduler(config=cfg.config, optimizer=optimizer)
+    bnm_scheduler = load_bnm_scheduler(cfg=cfg, net=model, start_epoch=scheduler.last_epoch)
+    
+    cfg.log_string('Start Training...')
+    max_epochs=cfg.config['train']['epochs']
+    for epoch in range(max_epochs):
+        lrs = [optimizer.param_groups[i]['lr'] for i in range(len(optimizer.param_groups))]
+        cfg.log_string('Current learning rates are: ' + str(lrs) + '.')
+        bnm_scheduler.show_momentum()
+        epoch_loss_train=training_epoch(model,train_loader,optimizer,epoch,device,cfg)
+        cfg.log_string("TRAINING\t EPOCH %d\t LOSS %.5f" %(epoch+1,epoch_loss_train))
+        scheduler.step(epoch_loss_train)
+        bnm_scheduler.step()
+        writer.add_scalar("Loss/train", epoch_loss_train, epoch+1)
+        torch.save(model.module.state_dict(), cfg.save_path + "/weights_epoch_last") 
+        
+if 'save' in cfg.config['modes']:
+    model.module.save_shape_embedding(train_loader)
 
-print("... model loaded")
-
-optimizer=load_optimizer(cfg.config,model)
-scheduler = load_scheduler(config=cfg.config, optimizer=optimizer)
-bnm_scheduler = load_bnm_scheduler(cfg=cfg, net=model, start_epoch=scheduler.last_epoch)
-
-
-cfg.log_string('Start Training...')
-max_epochs=cfg.config['train']['epochs']
-for epoch in range(max_epochs):
-    lrs = [optimizer.param_groups[i]['lr'] for i in range(len(optimizer.param_groups))]
-    cfg.log_string('Current learning rates are: ' + str(lrs) + '.')
-    bnm_scheduler.show_momentum()
-    epoch_loss_train=training_epoch(model,train_loader,optimizer,epoch,device,cfg)
-    cfg.log_string("TRAINING\t EPOCH %d\t LOSS %.5f" %(epoch+1,epoch_loss_train))
-    scheduler.step(epoch_loss_train)
-    bnm_scheduler.step()
-    writer.add_scalar("Loss/train", epoch_loss_train, epoch+1)
-    torch.save(model.module.state_dict(), cfg.save_path + "/weights_epoch_last") 
-
-model.module.save_shape_embedding(train_loader)
-evaluation_epoch(model,train_loader,device,cfg)
+if 'eval' in cfg.config['modes']:
+    evaluation_epoch(model,train_loader,device,cfg)
+    
 cfg.write_config()

@@ -215,6 +215,7 @@ def evaluation_epoch(model,loader,device,cfg):
     max_obj_points = 50000
     loss_per_cat = torch.zeros((8,2)).to(device)
     total_loss = 0
+    n=0
     
     for i, data in enumerate(loader):
         point_cloud = data['point_cloud'].to(device)
@@ -228,24 +229,25 @@ def evaluation_epoch(model,loader,device,cfg):
             meshes = model.module.generator.generate_mesh(embeddings)
             
         points_of_meshes = [torch.Tensor(mesh.vertices).to(device) for mesh in meshes]
-        for i,verts in enumerate(points_of_meshes):
-            obj_points_matrix[i,:verts.shape[0],:] = verts
+        for j,verts in enumerate(points_of_meshes):
+            obj_points_matrix[j,:verts.shape[0],:] = verts
 
         d1,d2 = chamfer_func(obj_points_matrix,point_cloud) 
         loss = torch.mean(d2,axis=1)
-        total_loss += torch.mean(d2).item()
+        total_loss += torch.sum(loss).item()
+        n+=loss.shape[0]
         
         for batch_id in range(loss.shape[0]):
             loss_per_cat[int(cat[batch_id]),0] += loss[batch_id]
             loss_per_cat[int(cat[batch_id]),1] += 1
-            
+
     loss_per_cat[:,0] /= loss_per_cat[:,1]
 
     cfg.log_string('---average chamfer distances per category---') 
     for i in range(8):
         cfg.log_string(f'{ScanNet2Cat[str(i)]:15} : {loss_per_cat[i,0]:10f}')
     cfg.log_string('') 
-    cfg.log_string(f'{"Total average":15} : {total_loss:10f}')
+    cfg.log_string(f'{"Total average":15} : {total_loss/(n):10f}')
     
     
 
