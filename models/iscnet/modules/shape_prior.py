@@ -177,14 +177,14 @@ class ShapePrior(nn.Module):
         kwargs = {}
         '''Infer latent code z.'''
 
-        preds = self.forward(query_points)
+        preds = self.compute_sdf(query_points)
         loss = F.mse_loss(preds.squeeze(), torch.sign(query_points_occ), reduction='mean')
 
         if export_shape:
             shape = (16, 16, 16)
             qp = make_3d_grid([-0.5 + 1 / 32] * 3, [0.5 - 1 / 32] * 3, shape).to(device)
             qp = qp.expand(batch_size, *qp.size())
-            p_r = self.forward(qp)
+            p_r = self.compute_sdf(qp)
             occ_hat = p_r.view(batch_size, *shape)
             voxels_out = (occ_hat >= self.threshold)
         else:
