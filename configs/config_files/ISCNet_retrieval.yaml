@@ -1,8 +1,8 @@
 method: ISCNet
 resume: False
 finetune: True
-weight: ['out/retrieval/2022-06-29T15:31:47.532922/model_best.pth']
-weight_prior: 'raw/weights/weights_epoch_98'
+weight: ['out/detection/2022-06-22T17:38:34.204907/model_best.pth']
+weight_prior: 'out/prior/prior_fps_new/weights_epoch_170'
 seed: 10
 device:
   use_gpu: True
@@ -26,13 +26,12 @@ data:
   points_subsample: [2048, 2048]
   hidden_dim: 512
   c_dim: 128
-  c_dim_prior: 128
-  z_dim: 32
   threshold: 0 # changed for sdf values
   completion_limit_in_train: 10
   use_cls_for_completion: False
   retrieval: True
-  embedding_path: 'raw/weights/shape_embeddings.pt'
+  skip_propagate: False
+  embedding_path: out/prior/prior_fps_new/shape_embeddings.pt
 model:
   backbone:
     method: Pointnet2Backbone
@@ -49,13 +48,9 @@ model:
   group_and_align:
     method: GroupAndAlign
     loss: Null
-  completion:
-    method: ShapeRetrieval
-    loss: ShapeRetrievalLoss
   shape_prior:
     method: ShapePrior
-    loss: ShapeRetrievalLoss
-    ClampingDistance: 0.1
+    loss: Null
 optimizer:
   method: Adam
   lr: 5e-5

@@ -1,4 +1,4 @@
-from models.iscnet.modules.generator_prior import Generator3DPrior
+from models.iscnet.modules.generator import Generator3D
 from models.iscnet.modules.layers import ResnetPointnet, CBatchNorm1d
 import torch
 import torch.nn as nn
@@ -49,28 +49,28 @@ class ShapePrior(nn.Module):
         self.threshold = cfg.config['data']['threshold']
         '''Definition of the modules'''
         leaky = False
-        self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim_prior'],
+        self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim'],
                                       dim=3,
                                       hidden_dim=cfg.config['data']['hidden_dim'])
 
-        hidden_dim = cfg.config['data']['c_dim_prior']
+        hidden_dim = cfg.config['data']['c_dim']
         self.fc1 = nn.Conv1d(3, hidden_dim, 1)
-        self.dblock1 = DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
+        self.dblock1 = DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                     hidden_dim=hidden_dim,
                                     leaky=leaky)
-        self.dblock2 = DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
+        self.dblock2 = DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                     hidden_dim=hidden_dim,
                                     leaky=leaky)
-        self.dblock3 = DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
+        self.dblock3 = DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                     hidden_dim=hidden_dim,
                                     leaky=leaky)
-        self.dblock4 = DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
+        self.dblock4 = DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                     hidden_dim=hidden_dim,
                                     leaky=leaky)
-        self.dblock5 = DecoderBlock(c_dim=cfg.config['data']['c_dim_prior'],
+        self.dblock5 = DecoderBlock(c_dim=cfg.config['data']['c_dim'],
                                     hidden_dim=hidden_dim,
                                     leaky=leaky)
-        self.CBatchNorm = CBatchNorm1d(c_dim=cfg.config['data']['c_dim_prior'],
+        self.CBatchNorm = CBatchNorm1d(c_dim=cfg.config['data']['c_dim'],
                                        f_dim=hidden_dim)
         self.fc2 = nn.Conv1d(hidden_dim, 1, 1)
         self.act = nn.ReLU()
@@ -79,8 +79,8 @@ class ShapePrior(nn.Module):
 
         '''Mount mesh generator'''
         if 'generation' in cfg.config and cfg.config['generation']['generate_mesh']:
-            from models.iscnet.modules.generator_prior import Generator3DPrior
-            self.generator = Generator3DPrior(self,
+            from models.iscnet.modules.generator import Generator3D
+            self.generator = Generator3D(self,
                                               threshold=cfg.config['data']['threshold'],
                                               resolution0=cfg.config['generation']['resolution_0'],
                                               upsampling_steps=cfg.config['generation']['upsampling_steps'],
@@ -144,7 +144,6 @@ class ShapePrior(nn.Module):
         :return:
         '''
         self.eval()
-        print(object_input_features.shape)
         self.set_latent(object_input_features)
         device = query_points.device
         batch_size = query_points.size(0)
@@ -157,7 +156,6 @@ class ShapePrior(nn.Module):
 
         preds = self.forward(query_points)
         loss = F.mse_loss(preds.squeeze(), torch.sign(query_points_occ), reduction='mean')
-        print(loss)
 
         if export_shape:
             shape = (16, 16, 16)

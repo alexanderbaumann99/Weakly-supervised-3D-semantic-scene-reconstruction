@@ -13,9 +13,7 @@ def get_surface_point_cloud(mesh, surface_point_method='scan', bounding_radius=N
     if bounding_radius is None:
         bounding_radius = np.max(np.linalg.norm(mesh.vertices, axis=1)) * 1.1
         
-    if surface_point_method == 'scan':
-        return surface_point_cloud.create_from_scans(mesh, bounding_radius=bounding_radius, scan_count=scan_count, scan_resolution=scan_resolution, calculate_normals=calculate_normals)
-    elif surface_point_method == 'sample':
+    if surface_point_method == 'sample':
         return surface_point_cloud.sample_from_mesh(mesh, sample_point_count=sample_point_count, calculate_normals=calculate_normals)        
     else:
         raise ValueError('Unknown surface point sampling method: {:s}'.format(surface_point_method))
@@ -40,13 +38,6 @@ def mesh_to_sdf(mesh, query_points, surface_point_method='scan', sign_method='no
     else:
         raise ValueError('Unknown sign determination method: {:s}'.format(sign_method))
 
-
-def mesh_to_voxels(mesh, voxel_resolution=64, surface_point_method='scan', sign_method='normal', scan_count=100, scan_resolution=400, sample_point_count=10000000, normal_sample_count=11, pad=False, check_result=False, return_gradients=False):
-    mesh = scale_to_unit_cube(mesh)
-
-    surface_point_cloud = get_surface_point_cloud(mesh, surface_point_method, 3**0.5, scan_count, scan_resolution, sample_point_count, sign_method=='normal')
-
-    return surface_point_cloud.get_voxels(voxel_resolution, sign_method=='depth', normal_sample_count, pad, check_result, return_gradients)
 
 # Sample some uniform points and some normally distributed around the surface as proposed in the DeepSDF paper
 def sample_sdf_near_surface(mesh, number_of_points = 500000, surface_point_method='scan', sign_method='normal', scan_count=100, scan_resolution=400, sample_point_count=10000000, normal_sample_count=11, min_size=0, return_gradients=False):

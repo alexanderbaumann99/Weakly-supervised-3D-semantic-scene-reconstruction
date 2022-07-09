@@ -26,9 +26,7 @@ data:
   points_subsample: [1024, 1024]
   hidden_dim: 512
   c_dim: 128
-  c_dim_prior: 128
-  z_dim: 32
-  threshold: 0 # changed for sdf values
+  threshold: 0
   completion_limit_in_train: 10
   use_cls_for_completion: False
   skip_propagate: True
@@ -55,8 +53,7 @@ model:
     weight: 0.005
   shape_prior:
     method: ShapePrior
-    loss: ShapeRetrievalLoss
-    ClampingDistance: 0.1
+    loss: Null
 optimizer:
   method: Adam
   lr: 5e-5

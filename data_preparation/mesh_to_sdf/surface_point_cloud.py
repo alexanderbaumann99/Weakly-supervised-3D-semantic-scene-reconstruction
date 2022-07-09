@@ -1,17 +1,16 @@
-from .scan import Scan, get_camera_transform_looking_at_origin
-from .utils import sample_uniform_points
-#from .utils import get_raster_points, check_voxels
-
 import trimesh
 import logging
 logging.getLogger("trimesh").setLevel(9000)
 import numpy as np
 from sklearn.neighbors import KDTree
 import math
-import pyrender
 import torch
 from dgl.geometry import farthest_point_sampler as fps
 
+def sample_uniform_points(amount):
+    '''changed to box instead of sphere'''
+    uniform_points = np.random.uniform(-0.5, 0.5, size=(amount, 3))
+    return uniform_points
 
 class BadMeshException(Exception):
     pass
@@ -105,31 +104,7 @@ class SurfacePointCloud:
         else:
             return np.concatenate(batches) # distances
 
-    '''
-    def get_voxels(self, voxel_resolution, use_depth_buffer=False, sample_count=11, pad=False, check_result=False, return_gradients=False):
-        result = self.get_sdf_in_batches(get_raster_points(voxel_resolution), use_depth_buffer, sample_count, return_gradients=return_gradients)
-        if not return_gradients:
-            sdf = result
-        else:
-            sdf, gradients = result
-            voxel_gradients = np.reshape(gradients, (voxel_resolution, voxel_resolution, voxel_resolution, 3))
-        
-        voxels = sdf.reshape((voxel_resolution, voxel_resolution, voxel_resolution))
-
-        if check_result and not check_voxels(voxels):
-            raise BadMeshException()
-
-        if pad:
-            voxels = np.pad(voxels, 1, mode='constant', constant_values=1)
-            if return_gradients:
-                voxel_gradients = np.pad(voxel_gradients, ((1, 1), (1, 1), (1, 1), (0, 0)), mode='edge')
-
-        if return_gradients:
-            return voxels, voxel_gradients
-        else:
-            return voxels
-    '''
-
+ 
     def sample_sdf_near_surface(self, number_of_points=500000,ratio_surface=0.6, use_scans=True, sign_method='normal', normal_sample_count=11, min_size=0, return_gradients=False):
         query_points = []
         surface_sample_count=int(number_of_points*ratio_surface)
@@ -159,13 +134,6 @@ class SurfacePointCloud:
             return query_points_near_surface, sdf_near_surface,unit_sphere_points,sdf_sphere
 
 
-
-
-    def show(self):
-        scene = pyrender.Scene()
-        scene.add(pyrender.Mesh.from_points(self.points, normals=self.normals))
-        pyrender.Viewer(scene, use_raymond_lighting=True, point_size=2)
-        
     def is_outside(self, points):
         result = None
         for scan in self.scans:
@@ -175,32 +143,6 @@ class SurfacePointCloud:
                 result = np.logical_or(result, scan.is_visible(points))
         return result
 
-def get_equidistant_camera_angles(count):
-    increment = math.pi * (3 - math.sqrt(5))
-    for i in range(count):
-        theta = math.asin(-1 + 2 * i / (count - 1))
-        phi = ((i + 1) * increment) % (2 * math.pi)
-        yield phi, theta
-
-def create_from_scans(mesh, bounding_radius=1, scan_count=100, scan_resolution=400, calculate_normals=True):
-    scans = []
-
-    for phi, theta in get_equidistant_camera_angles(scan_count):
-        camera_transform = get_camera_transform_looking_at_origin(phi, theta, camera_distance=2 * bounding_radius)
-        scans.append(Scan(mesh,
-            camera_transform=camera_transform,
-            resolution=scan_resolution,
-            calculate_normals=calculate_normals,
-            fov=1.0472,
-            z_near=bounding_radius * 1,
-            z_far=bounding_radius * 3
-        ))
-
-    return SurfacePointCloud(mesh, 
-        points=np.concatenate([scan.points for scan in scans], axis=0),
-        normals=np.concatenate([scan.normals for scan in scans], axis=0) if calculate_normals else None,
-        scans=scans
-    )
 
 def sample_from_mesh(mesh, sample_point_count=10000000, calculate_normals=True):
     if calculate_normals:

@@ -8,7 +8,7 @@ from configs.config_utils import CONFIG
 def parse_args():
     '''PARAMETERS'''
     parser = argparse.ArgumentParser('Instance Scene Completion.')
-    parser.add_argument('--config', type=str, default='configs/config_files/ISCNet.yaml',
+    parser.add_argument('--config', type=str, default='configs/config_files/ISCNet_prior.yaml',
                         help='configure file for training or testing.')
     parser.add_argument('--mode', type=str, default='train', help='train, test or demo.')
     parser.add_argument('--demo_path', type=str, default='demo/inputs/scene0549_00.off', help='Please specify the demo path.')

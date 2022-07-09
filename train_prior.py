@@ -1,13 +1,12 @@
 from models.iscnet.modules.prior_training import ShapePrior,testing_epoch,training_epoch
 import torch
 from torch.utils.tensorboard import SummaryWriter
-#from models.iscnet.prior_dataloader import PriorDataLoader,ShapeNetDataset
-from models.iscnet.prior_dataloader_2 import PriorDataLoader,ShapeNetDataset
+from models.iscnet.prior_dataloader import PriorDataLoader,ShapeNetDataset
 from models.optimizers import load_optimizer,load_bnm_scheduler,load_scheduler
 from configs.config_utils import mount_external_config
 from configs.config_utils import CONFIG
 
-cfg = CONFIG('configs/config_files/ISCNet.yaml')
+cfg = CONFIG('configs/config_files/ISCNet_prior.yaml')
 cfg = mount_external_config(cfg)
 writer = SummaryWriter(log_dir=cfg.save_path)
 device = torch.device("cuda")
@@ -22,7 +21,7 @@ model = torch.nn.DataParallel(model).to(device)
 
 
 print("... model loaded")
-'''
+
 optimizer=load_optimizer(cfg.config,model)
 scheduler = load_scheduler(config=cfg.config, optimizer=optimizer)
 bnm_scheduler = load_bnm_scheduler(cfg=cfg, net=model, start_epoch=scheduler.last_epoch)
@@ -36,14 +35,10 @@ for epoch in range(max_epochs):
     bnm_scheduler.show_momentum()
     epoch_loss_train=training_epoch(model,train_loader,optimizer,epoch,device,cfg)
     cfg.log_string("TRAINING\t EPOCH %d\t LOSS %.5f" %(epoch+1,epoch_loss_train))
-    #epoch_loss_val=testing_epoch(model,val_loader,epoch,device,cfg)
-    #cfg.log_string("VALIDATION \t EPOCH %d\t LOSS %.5f" %(epoch+1,epoch_loss_val))
     scheduler.step(epoch_loss_train)
     bnm_scheduler.step()
     writer.add_scalar("Loss/train", epoch_loss_train, epoch+1)
-    #writer.add_scalar("Loss/val",  epoch_loss_val, epoch+1)
-    if (epoch+1)%5==0:
-        torch.save(model.module.state_dict(), cfg.save_path + "/weights_epoch_"+str(epoch+1))
-cfg.write_config() '''
+    torch.save(model.module.state_dict(), cfg.save_path + "/weights_epoch_last")
+cfg.write_config() 
 
 model.module.save_shape_embedding(train_loader)
