@@ -138,6 +138,10 @@ class ISCNet(BaseNetwork):
 
                 # gather instance labels
                 proposal_instance_labels = torch.gather(data['object_instance_labels'], 1, BATCH_PROPOSAL_IDs[..., 1])
+                
+                gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 8).long().to(device)
+                sem_cls_scores = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
+                sem_cls_labels = torch.argmax(sem_cls_scores, dim=2).long()
 
                 if self.cfg.config['data']['retrieval']:
                     # --------- SHAPE RETRIEVAL --------
@@ -221,8 +225,8 @@ class ISCNet(BaseNetwork):
         chamfer_dist = torch.tensor(0.).to(features.device) 
         if self.cfg.config[mode]['phase'] == 'completion' and self.cfg.config['generation']['generate_mesh']:
             pred_mesh_dict = {'meshes': meshes, 'proposal_ids': BATCH_PROPOSAL_IDs}
-            parsed_predictions, chamfer_dist = self.fit_mesh_to_scan(pred_mesh_dict, parsed_predictions, eval_dict,
-                                                       inputs['point_clouds'], dump_threshold)
+            parsed_predictions, chamfer_dist,chamfer_dist_per_obj = self.fit_mesh_to_scan(pred_mesh_dict,\
+                                parsed_predictions, eval_dict,inputs['point_clouds'], dump_threshold)
 
         pred_mesh_dict = pred_mesh_dict if self.cfg.config[mode]['evaluate_mesh_mAP'] else None
         eval_dict = assembly_pred_map_cls(eval_dict, parsed_predictions, self.cfg.eval_config,
@@ -234,9 +238,8 @@ class ISCNet(BaseNetwork):
                                                             voxel_size=voxel_size)
 
         completion_loss = torch.cat([completion_loss.unsqueeze(0), mask_loss.unsqueeze(0), shape_retrieval_loss.unsqueeze(0)], dim=0).unsqueeze(0)
-        print(chamfer_dist.item())
 
-        return end_points, completion_loss, shape_example, BATCH_PROPOSAL_IDs, eval_dict, meshes, iou_stats, parsed_predictions, chamfer_dist
+        return end_points, completion_loss, shape_example, BATCH_PROPOSAL_IDs, eval_dict, meshes, iou_stats, parsed_predictions, chamfer_dist,(chamfer_dist_per_obj,sem_cls_labels.squeeze())
 
     def fit_mesh_to_scan(self, pred_mesh_dict, parsed_predictions, eval_dict, input_scan, dump_threshold):
         '''fit meshes to input scan'''
@@ -335,10 +338,13 @@ class ISCNet(BaseNetwork):
             optimizer.zero_grad()
             loss = self.chamfer_dist(obj_points_list, obj_points_mask_list, pc_in_box_list, pc_in_box_mask_list,
                                          centroid_params, orientation_params)
+            loss_per_obj = torch.mean(loss,axis=1)
+            loss = torch.mean(loss)
             if loss < best_loss:
                 centroid_params_cpu = centroid_params.data.cpu().numpy()
                 orientation_params_cpu = orientation_params.data.cpu().numpy()
                 best_loss = loss
+                best_loss_per_obj = loss_per_obj
             loss.backward()
             optimizer.step()
 
@@ -349,7 +355,7 @@ class ISCNet(BaseNetwork):
             pred_corners_3d_upright_camera[i, j] = best_box_corners_cam
 
         parsed_predictions['pred_corners_3d_upright_camera'] = pred_corners_3d_upright_camera
-        return parsed_predictions, best_loss
+        return parsed_predictions, best_loss,best_loss_per_obj
 
     def chamfer_dist(self, obj_points, obj_points_masks, pc_in_box, pc_in_box_masks, centroid_params,
                      orientation_params):
@@ -362,7 +368,7 @@ class ISCNet(BaseNetwork):
         axis_rectified[:, 1, 1] = torch.cos(orientation_params)
         obj_points_after = torch.bmm(obj_points, axis_rectified) + centroid_params.unsqueeze(-2)
         dist1, dist2 = chamfer_func(obj_points_after, pc_in_box)  
-        return torch.mean(dist2 * pc_in_box_masks) * 1e3 # distance from points to object
+        return dist2 * pc_in_box_masks * 1e3 # distance from points to object
 
     def forward(self, data, export_shape=False):
         '''
