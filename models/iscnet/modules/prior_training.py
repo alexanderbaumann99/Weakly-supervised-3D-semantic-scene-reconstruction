@@ -1,11 +1,14 @@
 from models.iscnet.modules.shape_prior import DecoderBlock
 from models.iscnet.modules.layers import ResnetPointnet, CBatchNorm1d
+from models.iscnet.modules.generator import Generator3D
+from models.loss import chamfer_func
+
 import torch.nn.functional as F
 import torch.nn as nn
 import torch
-from net_utils.sampling import farthest_point_sampler_batch
 import numpy as np
 
+ScanNet2Cat = {'0':'table','1':'chair','2':'bookshelf','3':'sofa','4':'trash bin','5':'cabinet','6':'display','7':'bathtub' }
 
 
 class ShapePrior(nn.Module):
@@ -19,7 +22,6 @@ class ShapePrior(nn.Module):
         super(ShapePrior,self).__init__()
         
         self.cfg=cfg
-        self.clamp_dist = cfg.config['model']['shape_prior']["ClampingDistance"]
         self.device = device
         '''Definition of the modules'''
         leaky=False
@@ -50,6 +52,14 @@ class ShapePrior(nn.Module):
         self.act=nn.ReLU()
         if leaky:
             self.act=nn.LeakyReLU()
+            
+        self.generator = Generator3D(self,    threshold=cfg.config['data']['threshold'],
+                                              resolution0=cfg.config['generation']['resolution_0'],
+                                              upsampling_steps=cfg.config['generation']['upsampling_steps'],
+                                              sample=cfg.config['generation']['use_sampling'],
+                                              refinement_step=cfg.config['generation']['refinement_step'],
+                                              simplify_nfaces=cfg.config['generation']['simplify_nfaces'],
+                                              preprocessor=None)
     
     def generate_latent(self,pc):
         '''
@@ -60,7 +70,17 @@ class ShapePrior(nn.Module):
             self.latent:    shape embedding of size (N x c_dim)     
         '''
         self.latent=self.encoder(pc)
-        #return self.latent
+    
+    def set_latent(self, z):
+        '''
+        Sets shape embedding of the point cloud
+        Args:
+            z: input feature vector of size (N x c_dim)
+        Returns:
+            self.latent:    shape embedding of size (N x c_dim)
+        '''
+        self.latent = z
+        return self.latent
 
     def forward(self,query_points,pc):
         '''
@@ -142,21 +162,11 @@ def training_epoch(model,loader,optim,epoch,device,cfg):
         point_cloud = data['point_cloud'].to(device)
         query_points = data['query_points'].to(device)
         gt_sdf = data['sdf'].to(device)
-        '''
-        point_cloud = data['point_cloud'].to(self.device)
-        query_points_surface = data['query_points_surface'].to(self.device)
-        query_points_sphere = data['query_points_sphere'].to(self.device)
-        sdf_surface = data['sdf_surface'].to(self.device)
-        sdf_sphere = data['sdf_sphere'].to(self.device)
-        query_points,gt_sdf = self.get_batch(query_points_surface,query_points_sphere,sdf_surface,sdf_sphere,1024,1024)
-        '''
 
         optim.zero_grad()
         preds=model(query_points,point_cloud)
         preds=preds.squeeze()
         loss=F.mse_loss(preds,torch.sign(gt_sdf),reduction='mean')
-        #preds = torch.clamp(preds, -self.clamp_dist, self.clamp_dist)
-        #loss = F.l1_loss(preds,gt_sdf,reduction='mean') 
         loss.backward()
         optim.step()
         
@@ -181,21 +191,11 @@ def testing_epoch(model,loader,epoch,device,cfg):
         point_cloud = data['point_cloud'].to(device)
         query_points = data['query_points'].to(device)
         gt_sdf = data['sdf'].to(device)
-        '''
-        point_cloud = data['point_cloud'].to(self.device)
-        query_points_surface = data['query_points_surface'].to(self.device)
-        query_points_sphere = data['query_points_sphere'].to(self.device)
-        sdf_surface = data['sdf_surface'].to(self.device)
-        sdf_sphere = data['sdf_sphere'].to(self.device)
-        query_points,gt_sdf = self.get_batch(query_points_surface,query_points_sphere,sdf_surface,sdf_sphere,1024,1024)
-        '''
 
         with torch.no_grad():
             preds=model(query_points,point_cloud)
             preds=preds.squeeze()
             loss=F.mse_loss(preds,torch.sign(gt_sdf),reduction='mean')
-            #preds = torch.clamp(preds, -self.clamp_dist, self.clamp_dist)
-            #loss = F.l1_loss(preds,gt_sdf,reduction='mean') 
         running_loss+=loss.item()
         if (i+1)%10==0:
             cfg.log_string("VALIDATION \t EPOCH %d\t ITER %d\t LOSS %.3f" %(epoch+1,i+1,running_loss/(i+1)))
@@ -203,7 +203,50 @@ def testing_epoch(model,loader,epoch,device,cfg):
 
     return epoch_mean
 
+def evaluation_epoch(model,loader,device,cfg):
+    '''
+    Pre-train procedure of the Shape Prior on the ShapeNet dataset
+        Args of Loader:
+            shape_net:      batches of point clouds (N x N_P x 3)
+            query_points:   query points            (N x M_P x 3)  
+            gt_val:         Ground truth SDF values (N x M_P x 1)
+    '''
 
+    max_obj_points = 50000
+    loss_per_cat = torch.zeros((8,2)).to(device)
+    total_loss = 0
+    
+    for i, data in enumerate(loader):
+        point_cloud = data['point_cloud'].to(device)
+        query_points = data['query_points'].to(device)
+        gt_sdf = data['sdf'].to(device)
+        cat = data['sem_cls_id']
+        
+        obj_points_matrix = torch.zeros((point_cloud.shape[0],max_obj_points, 3)).to(device)
+        with torch.no_grad():
+            embeddings=model.module.encoder(point_cloud)
+            meshes = model.module.generator.generate_mesh(embeddings)
+            
+        points_of_meshes = [torch.Tensor(mesh.vertices).to(device) for mesh in meshes]
+        for i,verts in enumerate(points_of_meshes):
+            obj_points_matrix[i,:verts.shape[0],:] = verts
+
+        d1,d2 = chamfer_func(obj_points_matrix,point_cloud) 
+        loss = torch.mean(d2,axis=1)
+        total_loss += torch.mean(d2).item()
+        
+        for batch_id in range(loss.shape[0]):
+            loss_per_cat[int(cat[batch_id]),0] += loss[batch_id]
+            loss_per_cat[int(cat[batch_id]),1] += 1
+            
+    loss_per_cat[:,0] /= loss_per_cat[:,1]
+
+    cfg.log_string('---average chamfer distances per category---') 
+    for i in range(8):
+        cfg.log_string(f'{ScanNet2Cat[str(i)]:15} : {loss_per_cat[i,0]:10f}')
+    cfg.log_string('') 
+    cfg.log_string(f'{"Total average":15} : {total_loss:10f}')
+    
     
 
 

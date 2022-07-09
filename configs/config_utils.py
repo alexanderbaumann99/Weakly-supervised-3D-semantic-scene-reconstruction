@@ -41,10 +41,11 @@ class CONFIG(object):
         self.update_config(log={'path': self._save_path})
 
         # update visualization path
-        vis_path = os.path.join(self._save_path, self.config['log']['vis_path'])
-        if not os.path.exists(vis_path):
-            os.mkdir(vis_path)
-        self.update_config(log={'vis_path': vis_path})
+        if 'vis_path' in self.config['log'].keys():
+            vis_path = os.path.join(self._save_path, self.config['log']['vis_path'])
+            if not os.path.exists(vis_path):
+                os.mkdir(vis_path)
+            self.update_config(log={'vis_path': vis_path})
 
         # initiate device environments
         os.environ["CUDA_VISIBLE_DEVICES"] = self.config['device']['gpu_ids']

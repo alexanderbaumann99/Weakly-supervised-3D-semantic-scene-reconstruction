@@ -11,7 +11,7 @@ from external.libmise import MISE
 
 
 class Generator3D(object):
-    '''  Generator class for Occupancy Networks.
+    '''  Generator class
 
     It provides functions to generate the final mesh as well refining options.
 
@@ -54,7 +54,7 @@ class Generator3D(object):
         ''' Generates the output mesh.
 
         Args:
-            object_features (tensor): data tensor of size N x c_dim
+            object_features (tensor): shape embeddings of size N x c_dim
             cls_codes (tensor): class one-hot codes.
             return_stats (bool): whether stats should be returned
         '''
@@ -62,9 +62,6 @@ class Generator3D(object):
         device = object_features.device
         batch_size = object_features.size(0)
         kwargs = {}
-
-        # if self.model.use_cls_for_completion:
-        #    object_features = torch.cat([point_clouds, cls_codes], dim=-1)
 
         meshes = []
         for batch_id in range(batch_size):
@@ -126,7 +123,7 @@ class Generator3D(object):
         '''
         self.model.eval()
         self.model.set_latent(z)
-        preds = self.model(qp)
+        preds = self.model.compute_sdf(qp)
 
         return preds
 

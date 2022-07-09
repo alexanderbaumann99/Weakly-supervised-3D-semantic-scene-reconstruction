@@ -13,7 +13,6 @@ import pickle
 class ShapeNetDataset(torch.utils.data.Dataset):
     def __init__(self, cfg, mode):
         super(ShapeNetDataset, self).__init__()
-        self.num_points = cfg.config['data']['num_points']
         self.num_query_points = cfg.config['data']['num_query_points']
         self.data_path = cfg.config['data']['shapenet_path']
 

@@ -1,4 +1,4 @@
-from models.iscnet.modules.prior_training import ShapePrior,testing_epoch,training_epoch
+from models.iscnet.modules.prior_training import ShapePrior,testing_epoch,training_epoch,evaluation_epoch
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from models.iscnet.prior_dataloader import PriorDataLoader,ShapeNetDataset
@@ -9,14 +9,19 @@ from configs.config_utils import CONFIG
 cfg = CONFIG('configs/config_files/ISCNet_prior.yaml')
 cfg = mount_external_config(cfg)
 writer = SummaryWriter(log_dir=cfg.save_path)
-device = torch.device("cuda")
 
+if cfg.config['device']['use_gpu']:
+    device = torch.device("cuda")
+else:
+    device = torch.device("cpu")
+    
 cfg.log_string('Load data...')
 train_loader,val_loader = PriorDataLoader(cfg,splits=[1.0,0.0])
 
 cfg.log_string('Load model...')
 model=ShapePrior(cfg,device)
-model.load_state_dict(torch.load('out/prior/2022-07-06T09:06:37.569383/weights_epoch_35'))
+if cfg.config['weight_prior'] is not None:
+    model.load_state_dict(torch.load(cfg.config['weight_prior']))
 model = torch.nn.DataParallel(model).to(device)
 
 
@@ -38,7 +43,8 @@ for epoch in range(max_epochs):
     scheduler.step(epoch_loss_train)
     bnm_scheduler.step()
     writer.add_scalar("Loss/train", epoch_loss_train, epoch+1)
-    torch.save(model.module.state_dict(), cfg.save_path + "/weights_epoch_last")
-cfg.write_config() 
+    torch.save(model.module.state_dict(), cfg.save_path + "/weights_epoch_last") 
 
 model.module.save_shape_embedding(train_loader)
+evaluation_epoch(model,train_loader,device,cfg)
+cfg.write_config()
