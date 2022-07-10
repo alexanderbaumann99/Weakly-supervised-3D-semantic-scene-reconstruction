@@ -31,6 +31,8 @@ def test_func(cfg, tester, test_loader):
     for iter, data in enumerate(test_loader):
         loss, est_data,loss_per_cat = tester.test_step(data)
         dist, labels = loss_per_cat
+        if len(labels.size())==0:
+            labels = labels.unsqueeze(0)
         for batch_id in range(dist.shape[0]):
             acc_loss_per_cat[labels[batch_id].item()][0] += dist[batch_id].item()
             acc_loss_per_cat[labels[batch_id].item()][1] += 1
