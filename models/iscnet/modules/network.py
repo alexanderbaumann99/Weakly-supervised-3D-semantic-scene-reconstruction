@@ -542,6 +542,8 @@ class ISCNet(BaseNetwork):
         calculate loss of est_out given gt_out.
         '''
         end_points, completion_loss = est_data[:2]
+        if completion_loss.shape[0]>1:
+            completion_loss = torch.mean(completion_loss,0)
         completion_loss = completion_loss.squeeze()
         retrieval_loss = completion_loss[2]
         completion_loss = completion_loss[:2].mean().squeeze()
