@@ -227,7 +227,7 @@ class ISCNet(BaseNetwork):
                         'shapenet_ids': data['shapenet_ids']} if evaluate_mesh_mAP else None
         eval_dict['batch_gt_map_cls'] = assembly_gt_map_cls(parsed_gts, mesh_outputs=gt_mesh_dict,
                                                             voxel_size=voxel_size)
-
+        
         completion_loss = torch.cat([completion_loss.unsqueeze(0), mask_loss.unsqueeze(0), shape_retrieval_loss.unsqueeze(0)], dim=0).unsqueeze(0)
 
         return end_points, completion_loss, shape_example, BATCH_PROPOSAL_IDs, eval_dict, meshes, iou_stats, parsed_predictions, chamfer_dist,(chamfer_dist_per_obj,sem_cls_labels.squeeze())
@@ -543,7 +543,7 @@ class ISCNet(BaseNetwork):
         '''
         end_points, completion_loss = est_data[:2]
         completion_loss = completion_loss.squeeze()
-        retrieval_loss = completion_loss[2].item()
+        retrieval_loss = completion_loss[2]
         completion_loss = completion_loss[:2].mean().squeeze()
 
         total_loss = self.detection_loss(end_points, gt_data, self.cfg.dataset_config)
@@ -551,7 +551,7 @@ class ISCNet(BaseNetwork):
         # --------- INSTANCE COMPLETION ---------
         if self.cfg.config['data']['retrieval']:
             total_loss = {**total_loss, 'completion_loss': completion_loss.item(),
-            'shape_retrieval_loss': retrieval_loss}
+            'shape_retrieval_loss': retrieval_loss.item()}
             total_loss['total'] += completion_loss + retrieval_loss
 
         return total_loss
