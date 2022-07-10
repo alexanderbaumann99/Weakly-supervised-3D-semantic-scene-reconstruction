@@ -144,7 +144,7 @@ class ISCNet(BaseNetwork):
                                                                                  proposal_instance_labels)
                         batch_size, feat_dim, N_proposals = object_input_features.size()
                         # to N x c_dim (batch_size is 1)
-                        object_input_features = object_input_features.squeeze().permute(1,0)
+                        object_input_features = object_input_features.squeeze(dim=0).permute(1,0)
                     else:
                         point_clouds, features = self.group_and_align(pred_centers, heading_angles,
                                                                       proposal_features, inputs['point_clouds'],
@@ -152,7 +152,7 @@ class ISCNet(BaseNetwork):
                                                                       proposal_instance_labels)
                         N_proposals, batch_size, _, _ = point_clouds.size()
                         self.shape_prior.eval()
-                        point_clouds = point_clouds.squeeze()
+                        point_clouds = point_clouds.squeeze(dim=1)
                         object_input_features = self.shape_prior.encoder(point_clouds)
                         mask_loss = torch.tensor(0.).to(features.device)  # for skip propagation
                 else:
@@ -163,7 +163,7 @@ class ISCNet(BaseNetwork):
                                                                   proposal_instance_labels)
                     N_proposals, batch_size, _, _ = point_clouds.size()
                     self.shape_prior.eval()
-                    point_clouds = point_clouds.squeeze()
+                    point_clouds = point_clouds.squeeze(dim=1)
                     object_input_features = self.shape_prior.generate_latent(point_clouds)
 
                 # --------- SHAPE COMPLETION --------
