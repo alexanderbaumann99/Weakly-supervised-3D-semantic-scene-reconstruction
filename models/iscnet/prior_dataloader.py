@@ -1,13 +1,13 @@
-# Prior Dataloader of ISCNet.
-# Cite: VoteNet
+# Prior Dataloader of Shape Prior.
+# authors: Alexander Baumann, Sophia Wagner
+# cite: VoteNet
+# date: Jul, 2022
 
 import torch.utils.data
 from torch.utils.data import DataLoader
 import numpy as np
 import os
 from plyfile import PlyData
-
-import pickle
 
 
 class ShapeNetDataset(torch.utils.data.Dataset):

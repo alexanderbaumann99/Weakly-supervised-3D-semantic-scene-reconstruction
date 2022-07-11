@@ -1,10 +1,11 @@
-from models.iscnet.modules.generator import Generator3D
+# Shape Prior module.
+# authors: Alexander Baumann, Sophia Wagner
+# date: Jul, 2022
 from models.iscnet.modules.layers import ResnetPointnet, CBatchNorm1d
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from models.registers import MODULES
-import torch.distributions as dist
 from external.common import make_3d_grid
 
 

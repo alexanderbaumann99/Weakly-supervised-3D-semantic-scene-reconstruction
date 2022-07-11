@@ -1,3 +1,7 @@
+# training of the shape prior.
+# authors: Alexander Baumann, Sophia Wagner
+# date: Jul, 2022
+
 from models.iscnet.modules.prior_training import ShapePrior,testing_epoch,training_epoch,evaluation_epoch
 import torch
 from torch.utils.tensorboard import SummaryWriter

@@ -1,6 +1,6 @@
 # loss function library.
-# author: ynie
-# date: Feb, 2020
+# authors: ynie, Alexander Baumann, Sophia Wagner
+# date: Jul, 2022
 import numpy as np
 import torch
 import torch.nn as nn

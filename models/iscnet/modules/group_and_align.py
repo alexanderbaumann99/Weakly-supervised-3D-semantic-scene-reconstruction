@@ -1,14 +1,11 @@
-# Back propogate box features to input points.
-# author: ynie
-# date: March, 2020
-# cite: PointNet++
-
+# Group and align the input points.
+# authors: Alexander Baumann, Sophia Wagner
+# date: Jul, 2022
+# cite: yinie, PointNet++
 from models.registers import MODULES
 import torch
 from torch import nn
 from external.pointnet2_ops_lib.pointnet2_ops.pointnet2_modules import STN_Group
-from models.iscnet.modules.layers import ResnetPointnet
-from models.iscnet.modules.pointseg import PointSeg, get_loss
 
 
 @MODULES.register_module

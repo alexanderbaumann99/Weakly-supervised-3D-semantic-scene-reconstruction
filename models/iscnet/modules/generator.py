@@ -1,3 +1,7 @@
+# Generate meshes from point clouds using a shape prior prediction.
+# authors: Alexander Baumann, Sophia Wagner
+# date: Jul, 2022
+# cite: yinie
 import torch
 import torch.optim as optim
 from torch import autograd

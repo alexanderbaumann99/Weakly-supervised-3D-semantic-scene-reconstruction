@@ -1,8 +1,8 @@
-# author: ynie
-# date: Feb, 2020
+# Full network pipeline.
+# authors: yinie, Alexander Baumann, Sophia Wagner
+# date: Jul, 2022
 
 from models.registers import METHODS, MODULES, LOSSES
-from models.iscnet.modules.layers import ResnetPointnet
 from models.network import BaseNetwork
 import torch
 from net_utils.nn_distance import nn_distance

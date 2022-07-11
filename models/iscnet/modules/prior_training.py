@@ -1,3 +1,6 @@
+# Shape Prior for training.
+# authors: Alexander Baumann, Sophia Wagner
+# date: Jul, 2022
 from models.iscnet.modules.shape_prior import DecoderBlock
 from models.iscnet.modules.layers import ResnetPointnet, CBatchNorm1d
 from models.iscnet.modules.generator import Generator3D
@@ -6,7 +9,6 @@ from models.loss import chamfer_func
 import torch.nn.functional as F
 import torch.nn as nn
 import torch
-import numpy as np
 
 ScanNet2Cat = {'0':'table','1':'chair','2':'bookshelf','3':'sofa','4':'trash bin','5':'cabinet','6':'display','7':'bathtub' }
 

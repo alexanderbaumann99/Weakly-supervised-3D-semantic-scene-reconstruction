@@ -1,17 +1,16 @@
 # Tester for Total3D
 # author: ynie
-# date: April, 2020
+# changes: Alexander Baumann, Sophia Wagner
+# date: Jul, 2022
 from models.testing import BaseTester
 from .training import Trainer
 from net_utils.ap_helper import parse_predictions, parse_groundtruths, assembly_pred_map_cls, assembly_gt_map_cls
 import os
-import torch
 import numpy as np
-from net_utils.libs import softmax
 from utils import pc_util
 from models.loss import compute_objectness_loss
 from utils.read_and_write import read_json
-from net_utils.libs import flip_axis_to_depth, flip_axis_to_camera
+from net_utils.libs import flip_axis_to_depth
 
 class Tester(BaseTester, Trainer):
     '''

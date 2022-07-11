@@ -1,8 +1,8 @@
-from turtle import forward
+# Extracting shape embedding from input point cloud.
+# authors: Alexander Baumann, Sophia Wagner
+# date: Jul, 2022
 from models.iscnet.modules.layers import ResnetPointnet
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class ShapeEmbedding(nn.Module):
