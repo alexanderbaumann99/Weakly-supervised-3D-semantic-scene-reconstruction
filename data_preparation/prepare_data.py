@@ -1,3 +1,6 @@
+# Data preparation of ShapeNet data for shape prior training.
+# authors: Alexander Baumann, Sophia Wagner
+# date: Jul, 2022
 import os
 import trimesh
 from mesh_to_sdf import get_surface_point_cloud
