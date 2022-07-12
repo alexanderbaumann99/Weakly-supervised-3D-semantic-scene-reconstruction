@@ -43,8 +43,8 @@ In the following, we cite [RfD-Net](https://github.com/yinyunie/RfDNet).
 Put the trained model and shape prior in the directory as below
 
 ```
-out/pretrained_models/retrieval_weight.pth
-out/pretrained_models/prior_weight.pth
+out/retrieval/a_folder_with_retrieval_module/model_best.pth
+out/prior/a_folder_with_prior_module/weights_epoch_last.pth
 ```
 A demo is illustrated below to see how our method works.
 ```
