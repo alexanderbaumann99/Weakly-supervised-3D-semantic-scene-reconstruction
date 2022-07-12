@@ -228,7 +228,7 @@ def generate(cfg, net, data, post_processing):
         batch_sample_ids = eval_dict['pred_mask']
         dump_threshold = cfg.config['generation']['dump_threshold']
 
-        BATCH_PROPOSAL_IDs = get_proposal_id(end_points, data, mode='random',
+        BATCH_PROPOSAL_IDs = get_proposal_id(cfg, end_points, data, mode='random',
                                                       batch_sample_ids=batch_sample_ids,
                                                       DUMP_CONF_THRESH=dump_threshold)
         # --------- GATHER FEATURES --------
@@ -253,26 +253,18 @@ def generate(cfg, net, data, post_processing):
                                                                                      pred_heading_residual)
         heading_angles = torch.gather(heading_angles, 1, BATCH_PROPOSAL_IDs[..., 0])
 
-        # gather instance labels
-        proposal_instance_labels = torch.gather(data['object_instance_labels'], 1, BATCH_PROPOSAL_IDs[..., 1])
-
-        #gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 8).long().to(device)
-        #sem_cls_scores = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
-        #sem_cls_labels = torch.argmax(sem_cls_scores, dim=2).long()
-
         if cfg.config['data']['retrieval']:
             # --------- SHAPE RETRIEVAL --------
             if cfg.config['data']['skip_propagate']:
                 object_input_features = net.skip_propagation.generate(pred_centers, heading_angles,
-                                                                             proposal_features, inputs['point_clouds'])
+                                                                        proposal_features, inputs['point_clouds'])
                 batch_size, feat_dim, N_proposals = object_input_features.size()
                 # to N x c_dim (batch_size is 1)
                 object_input_features = object_input_features.squeeze(dim=0).permute(1, 0)
             else:
                 point_clouds, features = net.group_and_align(pred_centers, heading_angles,
-                                                                  proposal_features, inputs['point_clouds'],
-                                                                  data['point_instance_labels'],
-                                                                  proposal_instance_labels)
+                                                                inputs['point_clouds'],
+                                                                data['point_instance_labels'])
                 N_proposals, batch_size, _, _ = point_clouds.size()
                 net.shape_prior.eval()
                 point_clouds = point_clouds.squeeze(dim=1)
@@ -280,26 +272,12 @@ def generate(cfg, net, data, post_processing):
         else:
             # --------- SHAPE PRIOR --------
             point_clouds, features = net.group_and_align(pred_centers, heading_angles,
-                                                        proposal_features, inputs['point_clouds'],
-                                                        data['point_instance_labels'],
-                                                        proposal_instance_labels)
+                                                        inputs['point_clouds'],
+                                                        data['point_instance_labels'])
             N_proposals, batch_size, _, _ = point_clouds.size()
             net.shape_prior.eval()
             point_clouds = point_clouds.squeeze(dim=1)
             object_input_features = net.shape_prior.generate_latent(point_clouds)
-
-        # --------- SHAPE COMPLETION --------
-        # Prepare input-output pairs for shape completion
-        # proposal_to_gt_box_w_cls_list (B x N_Limit x 4): (bool_mask, proposal_id, gt_box_id, cls_id)
-            #input_points_for_completion, \
-            #input_points_occ_for_completion, \
-            #_ = self.prepare_data(data, BATCH_PROPOSAL_IDs)
-
-        gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, end_points['sem_cls_scores'].size(2))
-        cls_codes_for_completion = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
-        cls_codes_for_completion = (
-                cls_codes_for_completion >= torch.max(cls_codes_for_completion, dim=2, keepdim=True)[0]).float()
-        cls_codes_for_completion = cls_codes_for_completion.view(batch_size * N_proposals, -1)
 
         meshes = net.shape_prior.generator.generate_mesh(object_input_features)
 

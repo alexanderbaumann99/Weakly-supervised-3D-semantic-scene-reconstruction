@@ -34,8 +34,7 @@ class GroupAndAlign(nn.Module):
 
         return xyz, features
 
-    def forward(self, box_xyz, box_orientations, box_feature, input_point_cloud, point_instance_labels,
-                proposal_instance_labels):
+    def forward(self, box_xyz, box_orientations, input_point_cloud, point_instance_labels):
         '''
         Extract point features from input pointcloud, and propagate to box xyz.
         :param box_xyz: (Batch size x N points x 3) point coordinates

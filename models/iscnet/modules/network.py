@@ -147,9 +147,8 @@ class ISCNet(BaseNetwork):
                         object_input_features = object_input_features.squeeze(dim=0).permute(1,0)
                     else:
                         point_clouds, features = self.group_and_align(pred_centers, heading_angles,
-                                                                      proposal_features, inputs['point_clouds'],
-                                                                      data['point_instance_labels'],
-                                                                      proposal_instance_labels)
+                                                                      inputs['point_clouds'],
+                                                                      data['point_instance_labels'])
                         N_proposals, batch_size, _, _ = point_clouds.size()
                         self.shape_prior.eval()
                         point_clouds = point_clouds.squeeze(dim=1)
@@ -158,9 +157,8 @@ class ISCNet(BaseNetwork):
                 else:
                     # --------- SHAPE PRIOR --------
                     point_clouds, features = self.group_and_align(pred_centers, heading_angles,
-                                                                  proposal_features, inputs['point_clouds'],
-                                                                  data['point_instance_labels'],
-                                                                  proposal_instance_labels)
+                                                                  inputs['point_clouds'],
+                                                                  data['point_instance_labels'])
                     N_proposals, batch_size, _, _ = point_clouds.size()
                     self.shape_prior.eval()
                     point_clouds = point_clouds.squeeze(dim=1)
@@ -426,9 +424,8 @@ class ISCNet(BaseNetwork):
                 object_input_features = object_input_features.transpose(1,2)
             else:
                 point_clouds, features = self.group_and_align(pred_centers, heading_angles,
-                                                              proposal_features, inputs['point_clouds'],
-                                                              data['point_instance_labels'],
-                                                              proposal_instance_labels)
+                                                              inputs['point_clouds'],
+                                                              data['point_instance_labels'])
                 N_proposals, batch_size, _, _ = point_clouds.size()
                 point_clouds = point_clouds.view(N_proposals * batch_size, -1, 3)
                 object_input_features = self.shape_prior.encoder(point_clouds)
