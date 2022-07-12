@@ -1,7 +1,7 @@
 method: ISCNet
-weight_prior: 'out/prior/2022-07-06T18:40:00.208561/weights_epoch_170'
+weight_prior: None
 seed: 10
-modes: ['eval'] ## 'train', 'save', 'eval'
+modes: ['train', 'save', 'eval'] ## 'train', 'save', 'eval'
 device:
   use_gpu: True
   gpu_ids: '0,1'
@@ -15,7 +15,7 @@ data:
   hidden_dim: 512
   c_dim: 128
   threshold: 0
-  embedding_path: datasets/shape_embeddings.pt
+  embedding_path: out/prior/shape_embeddings.pt
 optimizer:
   method: Adam
   lr: 5e-5

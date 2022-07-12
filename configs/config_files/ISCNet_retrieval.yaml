@@ -1,8 +1,8 @@
 method: ISCNet
 resume: False
 finetune: True
-weight: ['out/detection/2022-06-22T17:38:34.204907/model_best.pth']
-weight_prior: 'out/prior/prior_fps_new/weights_epoch_170'
+weight: ['out/retrieval/a_folder_with_retrieval_module/model_best.pth']
+weight_prior: 'out/prior/a_folder_with_prior_module/weights_epoch_last.pth'
 seed: 10
 device:
   use_gpu: True
@@ -28,10 +28,10 @@ data:
   c_dim: 128
   threshold: 0 # changed for sdf values
   completion_limit_in_train: 10
-  use_cls_for_completion: False
+  use_cls_for_completion: Falseout/prior/shape_embeddings.pt
   retrieval: True
   skip_propagate: False
-  embedding_path: out/prior/prior_fps_new/shape_embeddings.pt
+  embedding_path:
 model:
   backbone:
     method: Pointnet2Backbone

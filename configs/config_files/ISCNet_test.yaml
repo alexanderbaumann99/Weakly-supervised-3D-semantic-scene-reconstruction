@@ -31,7 +31,7 @@ data:
   use_cls_for_completion: False
   retrieval: True
   skip_propagate: True
-  embedding_path: out/prior/prior_fps_new/shape_embeddings.pt
+  embedding_path: out/prior/shape_embeddings.pt
 model:
   backbone:
     method: Pointnet2Backbone

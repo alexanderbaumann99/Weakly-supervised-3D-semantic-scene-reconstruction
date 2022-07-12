@@ -25,11 +25,9 @@ data:
   points_subsample: [1024, 1024]
   hidden_dim: 512
   c_dim: 512
-  z_dim: 32
-  threshold: 0.5
+  threshold: 0
   completion_limit_in_train: 10
   use_cls_for_completion: False
-  skip_propagate: True
 model:
   backbone:
     method: Pointnet2Backbone
@@ -59,7 +57,7 @@ bnscheduler:
   bn_momentum_init: 0.5
   bn_momentum_max: 0.001
 train:
-  epochs: 240
+  epochs: 170
   phase: 'detection'
   freeze: []
   batch_size: 8
@@ -81,4 +79,4 @@ log:
   save_results: True
   vis_step: 500
   print_step: 10
-  path: out/iscnet
+  path: out/detection

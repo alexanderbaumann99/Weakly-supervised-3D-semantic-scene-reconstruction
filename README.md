@@ -10,7 +10,7 @@ Our main contributions are:
 * We provide a novel approach for semantic instance reconstruction on a real-world point cloud scan without using any supervision on this dataset.
 * We propose a shape prior which can predict the signed distance field directly from a given input point cloud, without voxelizing the scene.
 
-In the following work, we cite [RfD-Net](https://github.com/yinyunie/RfDNet). 
+In the following, we cite [RfD-Net](https://github.com/yinyunie/RfDNet). 
 
 ---
 
@@ -125,14 +125,14 @@ We firstly pretrain our **detection** module. You can follow the process below.
    python main.py --config configs/config_files/ISCNet_detection.yaml --mode train
    ```
    It will save the detection module weight at
-   `out/iscnet/a_folder_with_detection_module/model_best.pth`
+   `out/detection/a_folder_with_detection_module/model_best.pth`
 
 2. Copy the weight path of detection module (see 1.) into `configs/config_files/ISCNet_retrieval.yaml` as
    ```
    weight: ['out/detection/a_folder_with_detection_module/model_best.pth']
    ```
    
-3. Next, we train the shape prior by running 
+3. Next, we train the **shape prior** by running 
    ```
    python train_prior.py 
    ```
@@ -142,11 +142,13 @@ We firstly pretrain our **detection** module. You can follow the process below.
    ```
    weight_prior: 'out/prior/a_folder_with_prior_module/weights_epoch_last.pth'
    ```
+   The shape embeddings will be saved at `out/prior/shape_embeddings.pt`
 
-5. Now, we have to train the shape retrieval by running 
+5. Now, we have to train the **shape retrieval** by running 
     ```
    python main.py --config configs/config_files/ISCNet_retrieval.yaml --mode train
    ```
+   The weights will be saved at `out/retrieval/a_folder_with_retrieval_module/model_best.pth`
 
 #### Generating
 
@@ -176,10 +178,10 @@ You can choose each of the following ways for evaluation.
    Lower the `dump_threshold` in `ISCNet_test.yaml` in generation to enable more object proposals for mAP calculation (e.g. `dump_threshold=0.05`).
 
 2. You can evaluate the model using chamfer distances between the input point cloud and the corresponding mesh predictions (recommended). 
-   These will be computed automatically by generating predictions (see above). 
+   The distances will be computed automatically by generating predictions (see above). 
 
 3. You can evaluate the model using IoU scores. 
-   Again, these will be computed automatically by generating predictions (see above). 
+   Again, the scores will be computed automatically by generating predictions (see above). 
    For this, you need to download the complete ShapeNet data (see above) in order to have ground truth values. 
 
 
