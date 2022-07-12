@@ -262,7 +262,7 @@ def generate(cfg, net, data, post_processing):
                 # to N x c_dim (batch_size is 1)
                 object_input_features = object_input_features.squeeze(dim=0).permute(1, 0)
             else:
-                point_clouds, features = net.group_and_align.generate(pred_centers, heading_angles,
+                point_clouds = net.group_and_align.generate(pred_centers, heading_angles,
                                                                 inputs['point_clouds'])
                 N_proposals, batch_size, _, _ = point_clouds.size()
                 net.shape_prior.eval()
@@ -270,7 +270,7 @@ def generate(cfg, net, data, post_processing):
                 object_input_features = net.shape_prior.encoder(point_clouds)
         else:
             # --------- SHAPE PRIOR --------
-            point_clouds, features = net.group_and_align.generate(pred_centers, heading_angles,
+            point_clouds = net.group_and_align.generate(pred_centers, heading_angles,
                                                         inputs['point_clouds'])
             N_proposals, batch_size, _, _ = point_clouds.size()
             net.shape_prior.eval()
