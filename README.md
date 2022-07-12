@@ -115,7 +115,7 @@ We firstly pretrain our **detection** module. You can follow the process below.
    ```
    weight_prior: 'out/prior/a_folder_with_prior_module/weights_epoch_last.pth'
    ```
-   The shape embeddings will be saved at `out/prior/shape_embeddings.pt`
+   The shape embeddings will be saved at `out/prior/mean_embeddings.pt` or `out/prior/all_embeddings.pt` according to the config file.
 
 5. Now, we have to train the **shape retrieval** by running 
     ```
