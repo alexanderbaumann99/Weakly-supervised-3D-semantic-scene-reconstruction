@@ -34,6 +34,18 @@ class GroupAndAlign(nn.Module):
 
         return xyz, features
 
+    def generate(self, box_xyz, box_orientations, input_point_cloud):
+        xyz, features = self._break_up_pc(input_point_cloud)
+
+        point_instance_labels = torch.zeros_like(features)  # labels are not used in generation.
+        features = torch.cat([features, point_instance_labels], dim=1)
+        xyz, features = self.stn(xyz, features, box_xyz, box_orientations)
+        # from dimension B x dim x N_proposals x N_points
+        # to N_proposals x B x N_points x dim
+        xyz = xyz.permute([2, 0, 3, 1]).contiguous()
+
+        return xyz
+
     def forward(self, box_xyz, box_orientations, input_point_cloud, point_instance_labels):
         '''
         Extract point features from input pointcloud, and propagate to box xyz.
