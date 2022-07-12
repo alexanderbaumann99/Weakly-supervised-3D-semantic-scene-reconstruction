@@ -109,7 +109,7 @@ python data_preparation/prepare_data.py
      
       A VTK window will be popped up like below.
    
-      <img src="out/samples/scene0001_00/verify.png" alt="verify.png" width="60%" />
+      <img src="out/samples/scene0549_00/gt.png" alt="verify.png" width="60%" />
 
 ---
 ### Training, Generating and Evaluation
