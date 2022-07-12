@@ -39,29 +39,6 @@ In the following, we cite [RfD-Net](https://github.com/yinyunie/RfDNet).
 
 ---
 
-### Demo
-Put the trained model and shape prior in the directory as below
-
-```
-out/retrieval/a_folder_with_retrieval_module/model_best.pth
-out/prior/a_folder_with_prior_module/weights_epoch_last.pth
-```
-A demo is illustrated below to see how our method works.
-```
-cd Weakly-supervised-3D-semantic-scene-reconstruction
-python main.py --config configs/config_files/ISCNet_test.yaml --mode demo --demo_path demo/inputs/scene0549_00.off
-```
-
-[VTK](https://vtk.org/) is used here to visualize the 3D scenes. The outputs will be saved under 'demo/outputs'. You can also play with your toy with this script.
-
-If everything goes smooth, there will be a GUI window popped up and you can interact with the scene as below.
-<img src="demo/screenshots/screenshot_demo.png" alt="screenshot_demo.png" width="60%" />
-
-You can also use the `offscreen` mode by setting `offline=True` in `demo.py` to render the 3D scene.
-The rendered image will be saved in `demo/outputs/some_scene_id/pred.png`.
-
----
-
 ### Prepare Data
 In our paper, we use the input point cloud from the [ScanNet](http://www.scan-net.org/) dataset and the [ShapeNet](https://shapenet.org/) dataset for training the shape prior. 
 For evaluating IoU scores with ground truth labels, we use the [Scan2CAD](https://github.com/skanti/Scan2CAD) dataset which aligns the object CAD models from [ShapeNetCore.v2](https://shapenet.org/) to each object in ScanNet. 
