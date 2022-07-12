@@ -48,7 +48,10 @@ if 'train' in cfg.config['modes']:
         
 if 'save' in cfg.config['modes']:
     model.eval()
-    model.module.save_shape_embedding(train_loader)
+    if cfg.config['data']['mean_embeddings']:
+        model.module.save_mean_embeddings(train_loader)
+    else:
+        model.module.save_all_embeddings(train_loader)
 
 if 'eval' in cfg.config['modes']:
     model.eval()

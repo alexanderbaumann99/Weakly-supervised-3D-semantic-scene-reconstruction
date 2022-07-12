@@ -32,8 +32,8 @@ data:
   retrieval: True
   skip_propagate: True
   mean_embeddings: True
-  embedding_path: out/prior/shape_embeddings.pt
-  all_embedding_path: out/prior/shape_embeddings_all.pt
+  mean_embedding_path: out/prior/mean_embeddings.pt
+  all_embedding_path: out/prior/all_embeddings.pt
 model:
   backbone:
     method: Pointnet2Backbone

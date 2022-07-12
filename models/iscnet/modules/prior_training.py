@@ -128,7 +128,7 @@ class ShapePrior(nn.Module):
 
         return out
     
-    def save_shape_embedding(self,loader):
+    def save_mean_embeddings(self,loader):
 
         num_cats=8
         emb_per_cat = torch.zeros((num_cats,self.cfg.config['data']['c_dim'])).to(self.device)
@@ -143,11 +143,26 @@ class ShapePrior(nn.Module):
                 emb_per_cat[int(cat[j]),:]+=shape_embs[j,:]
                 n_obj_per_cat[int(cat[j])]+=1
         
-        print(n_obj_per_cat)
-        print(emb_per_cat)
         for j in range(n_obj_per_cat.shape[0]): 
             emb_per_cat[j] /= n_obj_per_cat[j]
-        torch.save(emb_per_cat,self.cfg.config['data']['embedding_path'])
+        torch.save(emb_per_cat,self.cfg.config['data']['mean_embedding_path'])
+
+    def save_all_embeddings(self,loader):
+
+        num_cats = 8
+        embeddings = []
+        for _ in range(num_cats):
+            embeddings.append([])
+
+        for i, data in enumerate(loader):
+            point_cloud = data['point_cloud'].to(self.device)
+            cat = data['sem_cls_id']
+            with torch.no_grad():
+                shape_embs=self.encoder(point_cloud)
+            for j in range(shape_embs.shape[0]):
+                embeddings[int(cat[j])].append(shape_embs[j,:])
+        
+        torch.save(embeddings,self.cfg.config['data']['all_embedding_path'])
 
 
 def training_epoch(model,loader,optim,epoch,device,cfg):

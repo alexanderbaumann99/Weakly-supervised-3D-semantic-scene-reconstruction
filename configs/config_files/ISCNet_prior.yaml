@@ -15,7 +15,9 @@ data:
   hidden_dim: 512
   c_dim: 128
   threshold: 0
-  embedding_path: out/prior/shape_embeddings.pt
+  mean_embeddings: True
+  mean_embedding_path: out/prior/mean_embeddings.pt
+  all_embedding_path: out/prior/all_embeddings.pt
 optimizer:
   method: Adam
   lr: 5e-5

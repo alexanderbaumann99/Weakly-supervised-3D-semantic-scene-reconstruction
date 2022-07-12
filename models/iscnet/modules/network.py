@@ -60,7 +60,7 @@ class ISCNet(BaseNetwork):
                 self.shape_prior.load_state_dict(torch.load(cfg.config['weight_prior']))
         
         if cfg.config[cfg.config['data']]['mean_embeddings']:
-            self.shape_embeddings = torch.load(cfg.config['data']['embedding_path'])
+            self.shape_embeddings = torch.load(cfg.config['data']['mean_embedding_path'])
             self.shape_retrieval_loss = ShapeRetrievalLoss()
         else:
             self.shape_embeddings = torch.load(cfg.config['data']['all_embedding_path'])
