@@ -437,9 +437,18 @@ class ISCNet(BaseNetwork):
                 object_input_features = object_input_features.transpose(0,1)
                 mask_loss = torch.tensor(0.).to(features.device)
 
+            '''
             gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 8).long().to(device)
             sem_cls_scores = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
-            sem_cls_labels = torch.argmax(sem_cls_scores, dim=2).long()
+            sem_cls_labels = torch.argmax(sem_cls_scores, dim=2).long()'''
+            
+            gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 3).long().to(device)
+            aggregated_vote_xyz = torch.gather(end_points['aggregated_vote_xyz'], 1, gather_ids)
+            gt_center = data['center_label'][:,:,0:3]
+            _, object_assignment, _, _ = nn_distance(aggregated_vote_xyz, gt_center)
+            sem_cls_labels = torch.gather(data['sem_cls_label'], 1, object_assignment) 
+            
+            
             shape_retrieval_loss = self.shape_retrieval_loss(object_input_features, self.shape_embeddings, sem_cls_labels, device)
 
         else:
