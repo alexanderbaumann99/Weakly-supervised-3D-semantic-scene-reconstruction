@@ -21,10 +21,6 @@ In the following, we cite [RfD-Net](https://github.com/yinyunie/RfDNet).
     conda env create -f environment.yml
     conda activate rfdnet
     ```
-    * Install with pip:
-    ```
-    pip install -r requirements.txt
-    ```
    
 2. Next, compile the external libraries by
     ```

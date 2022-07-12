@@ -12,7 +12,7 @@ from external.common import compute_iou
 from net_utils.libs import flip_axis_to_depth, extract_pc_in_box3d, flip_axis_to_camera
 from torch import optim
 from models.loss import chamfer_func
-from models.loss import ShapeRetrievalLoss
+from models.loss import ShapeRetrievalLoss,ShapeRetrievalLoss_random
 from net_utils.box_util import get_3d_box
 
 
@@ -54,11 +54,17 @@ class ISCNet(BaseNetwork):
 
         '''freeze submodules or not'''
         self.freeze_modules(cfg)
+
         if cfg.config[cfg.config['mode']]['phase'] in ['completion']:
             if cfg.config['mode'] == 'train' or cfg.config['data']['retrieval'] == False:
                 self.shape_prior.load_state_dict(torch.load(cfg.config['weight_prior']))
-        self.shape_embeddings = torch.load(cfg.config['data']['embedding_path'])
-        self.shape_retrieval_loss = ShapeRetrievalLoss()
+        
+        if cfg.config[cfg.config['data']]['mean_embeddings']:
+            self.shape_embeddings = torch.load(cfg.config['data']['embedding_path'])
+            self.shape_retrieval_loss = ShapeRetrievalLoss()
+        else:
+            self.shape_embeddings = torch.load(cfg.config['data']['all_embedding_path'])
+            self.shape_retrieval_loss = ShapeRetrievalLoss_random()
 
     def generate(self, data):
         '''
@@ -432,11 +438,6 @@ class ISCNet(BaseNetwork):
                 object_input_features = object_input_features.view(N_proposals, batch_size, -1)
                 object_input_features = object_input_features.transpose(0,1)
                 mask_loss = torch.tensor(0.).to(features.device)
-
-            '''
-            gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 8).long().to(device)
-            sem_cls_scores = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
-            sem_cls_labels = torch.argmax(sem_cls_scores, dim=2).long()'''
             
             gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 3).long().to(device)
             aggregated_vote_xyz = torch.gather(end_points['aggregated_vote_xyz'], 1, gather_ids)
