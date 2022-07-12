@@ -165,6 +165,7 @@ class ISCNet(BaseNetwork):
                     self.shape_prior.eval()
                     point_clouds = point_clouds.squeeze(dim=1)
                     object_input_features = self.shape_prior.generate_latent(point_clouds)
+                    mask_loss = torch.tensor(0.).to(features.device)  # for skip propagation
 
                 # --------- SHAPE COMPLETION --------
                 # Prepare input-output pairs for shape completion
@@ -430,8 +431,6 @@ class ISCNet(BaseNetwork):
                                                               proposal_instance_labels)
                 N_proposals, batch_size, _, _ = point_clouds.size()
                 point_clouds = point_clouds.view(N_proposals * batch_size, -1, 3)
-                #object_input_features = self.shape_prior.generate_latent(point_clouds)
-                #object_input_features = self.completion(point_clouds)
                 object_input_features = self.shape_prior.encoder(point_clouds)
                 object_input_features = object_input_features.view(N_proposals, batch_size, -1)
                 object_input_features = object_input_features.transpose(0,1)

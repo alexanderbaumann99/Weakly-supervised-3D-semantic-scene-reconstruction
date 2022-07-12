@@ -20,7 +20,7 @@ class Generator3D(object):
     It provides functions to generate the final mesh as well refining options.
 
     Args:
-        model (nn.Module): trained Occupancy Network model
+        model (nn.Module): trained Shape Prior model
         points_batch_size (int): batch size for points evaluation
         threshold (float): threshold value
         refinement_step (int): number of refinement steps
@@ -54,7 +54,7 @@ class Generator3D(object):
         self.preprocessor = preprocessor
         self.use_cls_for_completion = use_cls_for_completion
 
-    def generate_mesh(self, object_features, return_stats=True):  # cls_codes,
+    def generate_mesh(self, object_features, return_stats=True):
         ''' Generates the output mesh.
 
         Args:
@@ -81,8 +81,6 @@ class Generator3D(object):
             z (tensor): latent code z
             c (tensor): latent conditioned code c
         '''
-        # threshold = np.log(self.threshold) - np.log(1. - self.threshold)
-
         # Compute bounding box size
         box_size = 1 + self.padding
 
@@ -143,13 +141,8 @@ class Generator3D(object):
         # Some short hands
         n_x, n_y, n_z = sdf_grid.shape
         box_size = 1 + self.padding
-        # threshold = np.log(self.threshold) - np.log(1. - self.threshold)
-        # Make sure that mesh is watertight
-        sdf_grid_padded = sdf_grid
-        # sdf_grid_padded = np.pad(
-        # sdf_grid, 1, 'constant', constant_values=-1e6)
         vertices, triangles = mcubes.marching_cubes(
-            sdf_grid_padded, self.threshold)
+            sdf_grid, self.threshold)
         # Strange behaviour in libmcubes: vertices are shifted by 0.5
         vertices -= 0.5
         # Undo padding
@@ -157,9 +150,6 @@ class Generator3D(object):
         # Normalize to bounding box
         vertices /= np.array([n_x - 1, n_y - 1, n_z - 1])
         vertices = box_size * (vertices - 0.5)
-
-        # mesh_pymesh = pymesh.form_mesh(vertices, triangles)
-        # mesh_pymesh = fix_pymesh(mesh_pymesh)
 
         # Estimate normals if needed
         if self.with_normals and not vertices.shape[0] == 0:
